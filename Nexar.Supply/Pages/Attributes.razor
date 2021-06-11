@@ -1,0 +1,54 @@
+@page "/attributes"
+@inherits AbstractPage
+@inject NexarClient Client
+
+<h1>Attributes</h1>
+
+@if (attributes == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <Table Responsive="true">
+        <TableHeader>
+            <TableRow>
+                <TableHeaderCell>ID</TableHeaderCell>
+                <TableHeaderCell>Shortname</TableHeaderCell>
+                <TableHeaderCell>Name</TableHeaderCell>
+                <TableHeaderCell>Group</TableHeaderCell>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            @foreach (var it in attributes)
+            {
+                <TableRow>
+                    <TableRowHeader>@it.Id</TableRowHeader>
+                    <TableRowCell>@it.Shortname</TableRowCell>
+                    <TableRowCell>@it.Name</TableRowCell>
+                    <TableRowCell>@it.Group</TableRowCell>
+                </TableRow>
+            }
+        </TableBody>
+    </Table>
+}
+
+@code {
+    IReadOnlyList<IAttributes_SupAttributes> attributes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var res = await Client.Attributes.ExecuteAsync();
+            EnsureNoErrors(res);
+
+            attributes = res.Data.SupAttributes;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+        }
+    }
+}

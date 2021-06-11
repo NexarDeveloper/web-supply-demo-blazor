@@ -1,0 +1,7 @@
+query Manufacturers {
+  supManufacturers {
+    id
+    name
+    homepageUrl
+  }
+}

@@ -1,0 +1,20 @@
+query Search($query: String!) {
+  supSearch(q: $query) {
+    manufacturerAgg {
+      company {
+        id
+        name
+      }
+      count
+    }
+    results {
+      part {
+        id
+        mpn
+        manufacturer {
+          name
+        }
+      }
+    }
+  }
+}

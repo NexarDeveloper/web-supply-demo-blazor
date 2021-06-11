@@ -1,0 +1,116 @@
+@page "/categories"
+@inherits AbstractPage
+@using Blazorise.TreeView
+@inject NexarClient Client
+
+<h1>Categories</h1>
+
+@if (Items == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <TreeView Nodes="Items"
+              GetChildNodes="@(item => item.Children)"
+              HasChildNodes="@(item => item.Children.Count > 0)"
+              @bind-SelectedNode="selectedNode">
+        <NodeContent>
+            @if (selectedNode == context)
+                {
+                <Button Type="ButtonType.Link" Clicked="OnClicked">@context.Info.Name ...</Button>
+                }
+                else
+                {
+                @context.Info.Name
+                }
+        </NodeContent>
+    </TreeView>
+
+    @if (selectedNode != null)
+    {
+        <Modal @ref="modalRef" Style="">
+            <ModalContent Centered="true" Size="ModalSize.Large">
+                <ModalHeader>
+                    <ModalTitle>Category details</ModalTitle>
+                    <CloseButton />
+                </ModalHeader>
+                <ModalBody>
+                    <Field>
+                        <FieldLabel>ID</FieldLabel>
+                        <TextEdit Text="@selectedNode.Info.Id" ReadOnly="true" />
+                    </Field>
+                    <Field>
+                        <FieldLabel>Name</FieldLabel>
+                        <TextEdit Text="@selectedNode.Info.Name" ReadOnly="true" />
+                    </Field>
+                    <Field>
+                        <FieldLabel>Path</FieldLabel>
+                        <TextEdit Text="@selectedNode.Info.Path" ReadOnly="true" />
+                    </Field>
+                    <Field>
+                        <FieldLabel>Number of parts</FieldLabel>
+                        <TextEdit Text="@selectedNode.Info.NumParts.ToString()" ReadOnly="true" />
+                    </Field>
+                </ModalBody>
+            </ModalContent>
+        </Modal>
+    }
+}
+
+@code {
+    public class CategoryNode
+    {
+        public CategoryNode(ICategoryInfo info)
+        {
+            Info = info;
+        }
+        public ICategoryInfo Info { get; }
+        public List<CategoryNode> Children { get; } = new();
+    }
+
+    Modal modalRef;
+
+    List<CategoryNode> Items;
+    CategoryNode selectedNode;
+
+    void OnClicked()
+    {
+        modalRef.Show();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var res = await Client.CategoryTrees.ExecuteAsync();
+            EnsureNoErrors(res);
+
+            Items = new List<CategoryNode>();
+            foreach (var cat1 in res.Data.SupCategories)
+            {
+                if (cat1.ParentId != "4161")
+                    continue;
+
+                var item1 = new CategoryNode(cat1);
+                Items.Add(item1);
+                foreach (var cat2 in cat1.Children)
+                {
+                    var item2 = new CategoryNode(cat2);
+                    item1.Children.Add(item2);
+                    foreach (var cat3 in cat2.Children)
+                    {
+                        var item3 = new CategoryNode(cat3);
+                        item2.Children.Add(item3);
+                    }
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+        }
+    }
+}

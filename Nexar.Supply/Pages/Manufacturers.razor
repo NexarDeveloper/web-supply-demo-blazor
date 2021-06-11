@@ -1,0 +1,54 @@
+@page "/manufacturers"
+@inherits AbstractPage
+@using Blazorise.DataGrid
+@inject NexarClient Client
+
+<h1>Manufacturers</h1>
+
+@if (manufacturers == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <DataGrid TItem="IManufacturers_SupManufacturers"
+              Data="@manufacturers"
+              Filterable="true"
+              FilterMethod="DataGridFilterMethod.Contains"
+              ShowPager="true"
+              PagerPosition="DataGridPagerPosition.Top"
+              ShowPageSizes="true">
+        <DataGridColumns>
+            <DataGridColumn TItem="IManufacturers_SupManufacturers"
+                            Field="@nameof(IManufacturers_SupManufacturers.Id)" Caption="ID" Sortable="false" Width="60px" />
+            <DataGridColumn TItem="IManufacturers_SupManufacturers"
+                            Field="@nameof(IManufacturers_SupManufacturers.Name)" Caption="Name" />
+            <DataGridColumn TItem="IManufacturers_SupManufacturers"
+                            Field="@nameof(IManufacturers_SupManufacturers.HomepageUrl)" Caption="Homepage">
+                <DisplayTemplate>
+                    <a href="@context.HomepageUrl" target="_blank">@context.HomepageUrl</a>
+                </DisplayTemplate>
+            </DataGridColumn>
+        </DataGridColumns>
+    </DataGrid>
+}
+
+@code {
+    IReadOnlyList<IManufacturers_SupManufacturers> manufacturers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var res = await Client.Manufacturers.ExecuteAsync();
+            EnsureNoErrors(res);
+
+            manufacturers = res.Data.SupManufacturers;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+        }
+    }
+}

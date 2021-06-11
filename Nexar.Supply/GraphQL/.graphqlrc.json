@@ -1,0 +1,11 @@
+{
+  "schema": "schema.graphql",
+  "documents": "**/*.graphql",
+  "extensions": {
+    "strawberryShake": {
+      "name": "NexarClient",
+      "namespace": "Nexar.Supply",
+      "url": "https://api.nexar.com/graphql/"
+    }
+  }
+}

@@ -1,0 +1,150 @@
+﻿@page "/search"
+@inherits AbstractPage
+@using Blazorise.Components
+@using Blazorise.DataGrid
+@inject NexarClient Client
+
+<h1>Search</h1>
+
+<Card>
+    <CardBody>
+        <Field>
+            <FieldLabel>Query string</FieldLabel>
+            <Autocomplete TItem="string"
+                          TValue="string"
+                          Data="@_suggestions"
+                          TextField="@(item => item)"
+                          ValueField="@(item => item)"
+                          SelectedValue="@_selectedValue"
+                          SelectedValueChanged="@SelectedValueChanged"
+                          SearchChanged="@SearchChangedAsync" />
+        </Field>
+        <Button Color="Color.Primary"
+                Loading="@_loading"
+                Clicked="SearchAsync">
+            Search
+        </Button>
+    </CardBody>
+</Card>
+
+@if (manufacturers != null && manufacturers.Count > 0)
+{
+    <Card>
+        <CardHeader><h3>Manufacturers</h3></CardHeader>
+        <CardBody>
+            <DataGrid TItem="CompanyInfo"
+                      Data="@manufacturers"
+                      Filterable="true"
+                      ShowPager="true"
+                      PagerPosition="DataGridPagerPosition.Top"
+                      ShowPageSizes="true">
+                <DataGridColumns>
+                    <DataGridColumn TItem="CompanyInfo"
+                                    Field="@nameof(CompanyInfo.Id)" Caption="ID" Sortable="false" Width="60px" />
+                    <DataGridColumn TItem="CompanyInfo"
+                                    Field="@nameof(CompanyInfo.Name)" Caption="Name" />
+                    <DataGridColumn TItem="CompanyInfo"
+                                    Field="@nameof(CompanyInfo.Count)" Caption="Count">
+                    </DataGridColumn>
+                </DataGridColumns>
+            </DataGrid>
+        </CardBody>
+    </Card>
+}
+
+@if (parts != null && parts.Count > 0)
+{
+    <Card>
+        <CardHeader><h3>Parts</h3></CardHeader>
+        <CardBody>
+            <DataGrid TItem="PartInfo"
+                      Data="@parts"
+                      Filterable="true"
+                      ShowPager="true"
+                      PagerPosition="DataGridPagerPosition.Top"
+                      ShowPageSizes="true">
+                <DataGridColumns>
+                    <DataGridColumn TItem="PartInfo"
+                                    Field="@nameof(PartInfo.Id)" Caption="ID" Sortable="false" Width="60px" />
+                    <DataGridColumn TItem="PartInfo"
+                                    Field="@nameof(PartInfo.Mpn)" Caption="Mpn" />
+                    <DataGridColumn TItem="PartInfo"
+                                    Field="@nameof(PartInfo.Manufacturer)" Caption="Manufacturer">
+                    </DataGridColumn>
+                </DataGridColumns>
+            </DataGrid>
+        </CardBody>
+    </Card>
+}
+
+@code {
+    record CompanyInfo(string Id, string Name, int? Count);
+    record PartInfo(string Id, string Mpn, string Manufacturer);
+
+    IReadOnlyList<string> _suggestions = Array.Empty<string>();
+    string _selectedValue = "";
+    string _query = "";
+    bool _loading;
+
+    IReadOnlyList<CompanyInfo> manufacturers;
+    IReadOnlyList<PartInfo> parts;
+
+    // when selected from the list
+    void SelectedValueChanged(string newValue)
+    {
+        _query = newValue;
+        _selectedValue = newValue;
+    }
+
+    // when typed and selected from the list (!)
+    async Task SearchChangedAsync(string newValue)
+    {
+        //! after SelectedValueChanged
+        if (newValue == null)
+            return;
+
+        _query = newValue;
+        if (newValue.Length == 0)
+        {
+            _suggestions = Array.Empty<string>();
+        }
+        else
+        {
+            var res = await Client.Suggest.ExecuteAsync(newValue);
+            if (res.Errors.Count > 0)
+            {
+                _suggestions = Array.Empty<string>();
+            }
+            else
+            {
+                _suggestions = res.Data.SupSuggest.Select(x => x.Text).ToArray();
+            }
+        }
+    }
+
+    async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_query))
+            return;
+
+        _loading = true;
+        try
+        {
+            var res = await Client.Search.ExecuteAsync(_query);
+            EnsureNoErrors(res);
+
+            manufacturers = res.Data.SupSearch.ManufacturerAgg.Select(x => new CompanyInfo(x.Company.Id, x.Company.Name, x.Count)).ToArray();
+            parts = res.Data.SupSearch.Results.Select(x => new PartInfo(x.Part.Id, x.Part.Mpn, x.Part.Manufacturer.Name)).ToArray();
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

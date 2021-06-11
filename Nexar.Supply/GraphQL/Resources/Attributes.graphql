@@ -1,0 +1,8 @@
+query Attributes {
+  supAttributes {
+    id
+    name
+    shortname
+    group
+  }
+}

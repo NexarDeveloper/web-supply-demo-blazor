@@ -1,0 +1,19 @@
+query CategoryTrees {
+  supCategories {
+    ... CategoryInfo
+    children {
+      ... CategoryInfo
+      children {
+        ... CategoryInfo
+      }
+    }
+  }
+}
+
+fragment CategoryInfo on SupCategory {
+    id
+    name
+    path
+    parentId
+    numParts
+}

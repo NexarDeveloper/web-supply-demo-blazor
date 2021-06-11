@@ -1,0 +1,52 @@
+@page "/sellers"
+@inherits AbstractPage
+@inject NexarClient Client
+
+<h1>Sellers</h1>
+
+@if (sellers == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <Table Responsive="true">
+        <TableHeader>
+            <TableRow>
+                <TableHeaderCell>ID</TableHeaderCell>
+                <TableHeaderCell>Name</TableHeaderCell>
+                <TableHeaderCell>Homepage</TableHeaderCell>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            @foreach (var it in sellers)
+            {
+                <TableRow>
+                    <TableRowHeader>@it.Id</TableRowHeader>
+                    <TableRowCell>@it.Name</TableRowCell>
+                    <TableRowCell><a href="@it.HomepageUrl" target="_blank">@it.HomepageUrl</a></TableRowCell>
+                </TableRow>
+            }
+        </TableBody>
+    </Table>
+}
+
+@code {
+    IReadOnlyList<ISellers_SupSellers> sellers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var res = await Client.Sellers.ExecuteAsync();
+            EnsureNoErrors(res);
+
+            sellers = res.Data.SupSellers;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+        }
+    }
+}

@@ -1,0 +1,163 @@
+﻿@page "/"
+@inherits AbstractPage
+@using IdentityModel.Client
+@using System.Net.Http
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
+@using Microsoft.AspNetCore.WebUtilities
+@inject IWebAssemblyHostEnvironment HostEnvironment
+
+@if (AppData.Token == null)
+{
+    <h1>Login</h1>
+    <Card>
+        <CardBody>
+            <Form>
+                <Validations @ref="validations" Mode="ValidationMode.Manual" ValidateOnLoad="false">
+                    <Field>
+                        <FieldLabel>Client ID</FieldLabel>
+                        <Validation Validator="@ValidateGuid">
+                            <TextEdit Placeholder="GUID value"
+                                      @bind-Text="@_model.ClientId"
+                                      Role="TextRole.Text"
+                                      id="username" name="username">
+                                <Feedback>
+                                    <ValidationError>Expected GUID value</ValidationError>
+                                </Feedback>
+                            </TextEdit>
+                        </Validation>
+                    </Field>
+                    <Field>
+                        <FieldLabel>Client secret</FieldLabel>
+                        <Validation Validator="@ValidateGuid">
+                            <TextEdit Placeholder="GUID value"
+                                      @bind-Text="@_model.ClientSecret"
+                                      Role="TextRole.Password"
+                                      id="password" name="password" autocomplete="off">
+                                <Feedback>
+                                    <ValidationError>Expected GUID value</ValidationError>
+                                </Feedback>
+                            </TextEdit>
+                        </Validation>
+                    </Field>
+                </Validations>
+                <Button Color="Color.Primary"
+                        Loading="@_loading"
+                        Clicked="LoginAsync">
+                    Login
+                </Button>
+            </Form>
+        </CardBody>
+    </Card>
+}
+else
+{
+    @* shown on brand links *@
+    <h1>Nexar.Supply</h1>
+    <p>Demo Blazor app powered by <a href="@AppData.ApiEndpoint" target="_blank">@AppData.ApiEndpoint</a></p>
+    <p>Please navigate to other pages to search or query data.</p>
+}
+
+@code {
+    Models.Login _model = new Models.Login();
+    Validations validations;
+    bool _loading;
+
+    void ValidateGuid(ValidatorEventArgs e)
+    {
+        var text = Convert.ToString(e.Value);
+        e.Status =
+            Guid.TryParse(text, out _) ? ValidationStatus.Success : ValidationStatus.Error;
+    }
+
+    static async Task<string> GetTokenAsync(string authority, string clientId, string clientSecret)
+    {
+        var client = new HttpClient();
+        var disco = await client.GetDiscoveryDocumentAsync(authority);
+        var tokenResponse = await client.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
+        {
+            Address = disco.TokenEndpoint,
+            ClientId = clientId,
+            ClientSecret = clientSecret,
+            Scope = "supply.domain"
+        });
+
+        if (tokenResponse.AccessToken == null)
+            throw new Exception("Cannot login with the provided data.");
+
+        return tokenResponse.AccessToken;
+    }
+
+    /// <summary>
+    /// Get token from the user input, then go to search.
+    /// </summary>
+    async Task LoginAsync()
+    {
+        if (!validations.ValidateAll())
+            return;
+
+        _loading = true;
+        try
+        {
+            AppData.Token = await GetTokenAsync(AppData.Authority, _model.ClientId, _model.ClientSecret);
+            NavManager.NavigateTo("search");
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// If a token is provided, check its sanity, then go to search.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        // skip started
+        if (AppData.Token != null)
+            return;
+
+        // apply mode
+        if (HostEnvironment.IsStaging())
+            AppData.NexarMode = Services.Mode.Dev;
+
+        var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+        try
+        {
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("mode", out var mode))
+            {
+                if (Enum.TryParse(mode, true, out Services.Mode value))
+                    AppData.NexarMode = value;
+                else
+                    throw new Exception($"Invalid mode.");
+            }
+
+            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("token", out var token))
+            {
+                try
+                {
+                    var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                    var jwtSecurityToken = tokenHandler.ReadJwtToken(token);
+                    if (jwtSecurityToken.ValidTo < DateTime.UtcNow.AddSeconds(10))
+                        throw new Exception("Expired");
+                }
+                catch (Exception)
+                {
+                    throw new Exception("Invalid or expired token.");
+                }
+
+                AppData.Token = token;
+                NavManager.NavigateTo("search");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex.Message);
+            NavManager.NavigateTo("");
+            return;
+        }
+    }
+}

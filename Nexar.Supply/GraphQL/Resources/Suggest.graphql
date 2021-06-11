@@ -1,0 +1,5 @@
+query Suggest($q: String!) {
+  supSuggest(q: $q) {
+    text
+  }
+}
