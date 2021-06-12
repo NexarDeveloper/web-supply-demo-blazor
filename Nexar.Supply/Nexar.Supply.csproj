@@ -21,7 +21,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="5.0.5" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
     <PackageReference Include="StrawberryShake.CodeGeneration.CSharp.Analyzers" Version="11.2.2" />
-    <PackageReference Include="StrawberryShake.Razor" Version="11.2.2" />
     <PackageReference Include="StrawberryShake.Transport.Http" Version="11.2.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.11.0" />
     <PackageReference Include="System.Net.Http.Json" Version="5.0.0" />
