@@ -1,9 +1,9 @@
 ﻿@page "/"
 @inherits AbstractPage
-@using IdentityModel.Client
 @using System.Net.Http
 @using Microsoft.AspNetCore.Components.WebAssembly.Hosting
 @using Microsoft.AspNetCore.WebUtilities
+@using Nexar.Client.Token
 @inject IWebAssemblyHostEnvironment HostEnvironment
 
 @if (AppData.Token == null)
@@ -69,24 +69,6 @@ else
             Guid.TryParse(text, out _) ? ValidationStatus.Success : ValidationStatus.Error;
     }
 
-    static async Task<string> GetTokenAsync(string authority, string clientId, string clientSecret)
-    {
-        var client = new HttpClient();
-        var disco = await client.GetDiscoveryDocumentAsync(authority);
-        var tokenResponse = await client.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
-        {
-            Address = disco.TokenEndpoint,
-            ClientId = clientId,
-            ClientSecret = clientSecret,
-            Scope = "supply.domain"
-        });
-
-        if (tokenResponse.AccessToken == null)
-            throw new Exception("Cannot login with the provided data.");
-
-        return tokenResponse.AccessToken;
-    }
-
     /// <summary>
     /// Get token from the user input, then go to search.
     /// </summary>
@@ -98,7 +80,8 @@ else
         _loading = true;
         try
         {
-            AppData.Token = await GetTokenAsync(AppData.Authority, _model.ClientId, _model.ClientSecret);
+            using var client = new HttpClient();
+            AppData.Token = await client.GetNexarTokenAsync(_model.ClientId, _model.ClientSecret, AppData.Authority);
             NavManager.NavigateTo("search");
         }
         catch (Exception ex)
