@@ -3,7 +3,6 @@ using Blazorise.Bootstrap;
 using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Nexar.Supply.Services;
 using System;
 using System.Threading.Tasks;
 

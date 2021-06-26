@@ -105,14 +105,14 @@ else
 
         // apply mode
         if (HostEnvironment.IsStaging())
-            AppData.NexarMode = Services.Mode.Dev;
+            AppData.NexarMode = Mode.Dev;
 
         var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
         try
         {
             if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("mode", out var mode))
             {
-                if (Enum.TryParse(mode, true, out Services.Mode value))
+                if (Enum.TryParse(mode, true, out Mode value))
                     AppData.NexarMode = value;
                 else
                     throw new Exception($"Invalid mode.");

@@ -1,6 +1,6 @@
 using System;
 
-namespace Nexar.Supply.Services
+namespace Nexar.Supply
 {
     /// <summary>
     /// The application state and options. Different modes and URLs are only

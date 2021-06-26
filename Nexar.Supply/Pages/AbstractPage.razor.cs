@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Nexar.Supply.Services;
 using StrawberryShake;
 using System;
 using System.Threading.Tasks;
