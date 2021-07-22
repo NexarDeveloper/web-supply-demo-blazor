@@ -2,34 +2,37 @@
 @inherits AbstractPage
 @inject NexarClient Client
 
-<h1>Sellers</h1>
-
-@if (sellers == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <Table Responsive="true">
-        <TableHeader>
-            <TableRow>
-                <TableHeaderCell>ID</TableHeaderCell>
-                <TableHeaderCell>Name</TableHeaderCell>
-                <TableHeaderCell>Homepage</TableHeaderCell>
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            @foreach (var it in sellers)
+<MudContainer>
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h4">Sellers</MudText>
+            @if (sellers == null)
             {
-                <TableRow>
-                    <TableRowHeader>@it.Id</TableRowHeader>
-                    <TableRowCell>@it.Name</TableRowCell>
-                    <TableRowCell><a href="@it.HomepageUrl" target="_blank">@it.HomepageUrl</a></TableRowCell>
-                </TableRow>
+                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
             }
-        </TableBody>
-    </Table>
-}
+            else
+            {
+                <MudTable Items="@sellers">
+                    <ToolBarContent>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>ID</MudTh>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Homepage</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="ID">@context.Id</MudTd>
+                        <MudTd DataLabel="Name">@context.Name</MudTd>
+                        <MudTd DataLabel="Homepage"><MudLink Href="@context.HomepageUrl" Target="_blank">@context.HomepageUrl</MudLink></MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
 
 @code {
     IReadOnlyList<ISellers_SupSellers> sellers;
@@ -42,7 +45,6 @@ else
             EnsureNoErrors(res);
 
             sellers = res.Data.SupSellers;
-            StateHasChanged();
         }
         catch (Exception ex)
         {

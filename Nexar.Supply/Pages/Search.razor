@@ -1,124 +1,105 @@
 ﻿@page "/search"
 @inherits AbstractPage
-@using Blazorise.Components
-@using Blazorise.DataGrid
 @inject NexarClient Client
 
-<h1>Search</h1>
+<MudContainer>
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h4" GutterBottom="true">Search</MudText>
+            <MudAutocomplete T="string" Label="Query" SearchFunc="@AutocompleteAsync" ResetValueOnEmptyText="true"
+                             TextChanged="OnQueryChanged" Dense="true" CoerceText="false" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Color="Color.Primary" OnClick="@SearchAsync">Search</MudButton>
+            @if (_loading)
+            {
+                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+            }
+        </MudCardActions>
+    </MudCard>
 
-<Card>
-    <CardBody>
-        <Field>
-            <FieldLabel>Query string</FieldLabel>
-            <Autocomplete TItem="string"
-                          TValue="string"
-                          Data="@_suggestions"
-                          TextField="@(item => item)"
-                          ValueField="@(item => item)"
-                          SelectedValue="@_selectedValue"
-                          SelectedValueChanged="@SelectedValueChanged"
-                          SearchChanged="@SearchChangedAsync" />
-        </Field>
-        <Button Color="Color.Primary"
-                Loading="@_loading"
-                Clicked="SearchAsync">
-            Search
-        </Button>
-    </CardBody>
-</Card>
+    @if (manufacturers != null && manufacturers.Count > 0)
+    {
+        <MudCard>
+            <MudCardContent>
+                <MudTable Items="@manufacturers">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Manufacturers</MudText>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>ID</MudTh>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Count</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="ID">@context.Id</MudTd>
+                        <MudTd DataLabel="Name">@context.Name</MudTd>
+                        <MudTd DataLabel="Count">@context.Count</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+            </MudCardContent>
+        </MudCard>
+    }
 
-@if (manufacturers != null && manufacturers.Count > 0)
-{
-    <Card>
-        <CardHeader><h3>Manufacturers</h3></CardHeader>
-        <CardBody>
-            <DataGrid TItem="CompanyInfo"
-                      Data="@manufacturers"
-                      Filterable="true"
-                      ShowPager="true"
-                      PagerPosition="DataGridPagerPosition.Top"
-                      ShowPageSizes="true">
-                <DataGridColumns>
-                    <DataGridColumn TItem="CompanyInfo"
-                                    Field="@nameof(CompanyInfo.Id)" Caption="ID" Sortable="false" Width="60px" />
-                    <DataGridColumn TItem="CompanyInfo"
-                                    Field="@nameof(CompanyInfo.Name)" Caption="Name" />
-                    <DataGridColumn TItem="CompanyInfo"
-                                    Field="@nameof(CompanyInfo.Count)" Caption="Count">
-                    </DataGridColumn>
-                </DataGridColumns>
-            </DataGrid>
-        </CardBody>
-    </Card>
-}
-
-@if (parts != null && parts.Count > 0)
-{
-    <Card>
-        <CardHeader><h3>Parts</h3></CardHeader>
-        <CardBody>
-            <DataGrid TItem="PartInfo"
-                      Data="@parts"
-                      Filterable="true"
-                      ShowPager="true"
-                      PagerPosition="DataGridPagerPosition.Top"
-                      ShowPageSizes="true">
-                <DataGridColumns>
-                    <DataGridColumn TItem="PartInfo"
-                                    Field="@nameof(PartInfo.Id)" Caption="ID" Sortable="false" Width="60px" />
-                    <DataGridColumn TItem="PartInfo"
-                                    Field="@nameof(PartInfo.Mpn)" Caption="Mpn" />
-                    <DataGridColumn TItem="PartInfo"
-                                    Field="@nameof(PartInfo.Manufacturer)" Caption="Manufacturer">
-                    </DataGridColumn>
-                </DataGridColumns>
-            </DataGrid>
-        </CardBody>
-    </Card>
-}
+    @if (parts != null && parts.Count > 0)
+    {
+        <MudCard>
+            <MudCardContent>
+                <MudTable Items="@parts">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Parts</MudText>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>ID</MudTh>
+                        <MudTh>Mpn</MudTh>
+                        <MudTh>Manufacturer</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="ID">@context.Id</MudTd>
+                        <MudTd DataLabel="Mpn">@context.Mpn</MudTd>
+                        <MudTd DataLabel="Manufacturer">@context.Manufacturer</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+            </MudCardContent>
+        </MudCard>
+    }
+</MudContainer>
 
 @code {
     record CompanyInfo(string Id, string Name, int? Count);
     record PartInfo(string Id, string Mpn, string Manufacturer);
 
     IReadOnlyList<string> _suggestions = Array.Empty<string>();
-    string _selectedValue = "";
     string _query = "";
     bool _loading;
 
     IReadOnlyList<CompanyInfo> manufacturers;
     IReadOnlyList<PartInfo> parts;
 
-    // when selected from the list
-    void SelectedValueChanged(string newValue)
+    void OnQueryChanged(string value)
     {
-        _query = newValue;
-        _selectedValue = newValue;
+        _query = value;
     }
 
-    // when typed and selected from the list (!)
-    async Task SearchChangedAsync(string newValue)
+    async Task<IEnumerable<string>> AutocompleteAsync(string value)
     {
-        //! after SelectedValueChanged
-        if (newValue == null)
-            return;
+        if (string.IsNullOrEmpty(value))
+            return Array.Empty<string>();
 
-        _query = newValue;
-        if (newValue.Length == 0)
+        var res = await Client.Suggest.ExecuteAsync(value);
+        if (res.Errors.Count > 0)
         {
-            _suggestions = Array.Empty<string>();
+            return Array.Empty<string>();
         }
         else
         {
-            var res = await Client.Suggest.ExecuteAsync(newValue);
-            if (res.Errors.Count > 0)
-            {
-                _suggestions = Array.Empty<string>();
-            }
-            else
-            {
-                _suggestions = res.Data.SupSuggest.Select(x => x.Text).ToArray();
-            }
+            return res.Data.SupSuggest.Select(x => x.Text).Distinct();
         }
     }
 

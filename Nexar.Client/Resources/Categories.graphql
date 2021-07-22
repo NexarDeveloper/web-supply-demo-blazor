@@ -13,7 +13,5 @@ query CategoryTrees {
 fragment CategoryInfo on SupCategory {
     id
     name
-    path
     parentId
-    numParts
 }

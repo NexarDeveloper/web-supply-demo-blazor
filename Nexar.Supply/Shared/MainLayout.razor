@@ -1,0 +1,35 @@
+﻿@inherits LayoutComponentBase
+@inject AppData AppData
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <img src="/brand.png" style="width:32px; height: 32px" />
+        <MudAppBarSpacer />
+        <MudIconButton Icon="@Icons.Filled.Search" Color="Color.Inherit" Title="Octopart search page" Link="https://octopart.com/api/v4/values" Target="_blank" />
+        <MudIconButton Icon="@Icons.Filled.Home" Color="Color.Inherit" Title="Nexar home page" Link="@AppData.NexarDotCom" Target="_blank" />
+        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Title="Source code" Link="https://github.com/NexarDeveloper/web-supply-demo-blazor" Target="_blank" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Nexar.Supply</MudText><MudBadge>Demo</MudBadge>
+        </MudDrawerHeader>
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

@@ -6,91 +6,43 @@
 @using Nexar.Client.Token
 @inject IWebAssemblyHostEnvironment HostEnvironment
 
-@if (AppData.Token == null)
-{
-    <h1>Login</h1>
-    <Card>
-        <CardBody>
-            <Form>
-                <Validations @ref="validations" Mode="ValidationMode.Manual" ValidateOnLoad="false">
-                    <Field>
-                        <FieldLabel>Client ID</FieldLabel>
-                        <Validation Validator="@ValidateGuid">
-                            <TextEdit Placeholder="GUID value"
-                                      @bind-Text="@_model.ClientId"
-                                      Role="TextRole.Text"
-                                      id="username" name="username">
-                                <Feedback>
-                                    <ValidationError>Expected GUID value</ValidationError>
-                                </Feedback>
-                            </TextEdit>
-                        </Validation>
-                    </Field>
-                    <Field>
-                        <FieldLabel>Client secret</FieldLabel>
-                        <Validation Validator="@ValidateGuid">
-                            <TextEdit Placeholder="GUID value"
-                                      @bind-Text="@_model.ClientSecret"
-                                      Role="TextRole.Password"
-                                      id="password" name="password" autocomplete="off">
-                                <Feedback>
-                                    <ValidationError>Expected GUID value</ValidationError>
-                                </Feedback>
-                            </TextEdit>
-                        </Validation>
-                    </Field>
-                </Validations>
-                <Button Color="Color.Primary"
-                        Loading="@_loading"
-                        Clicked="LoginAsync">
-                    Login
-                </Button>
-            </Form>
-        </CardBody>
-    </Card>
-}
-else
-{
-    @* shown on brand links *@
-    <h1>Nexar.Supply</h1>
-    <p>Demo Blazor app powered by <a href="@AppData.ApiEndpoint" target="_blank">@AppData.ApiEndpoint</a></p>
-    <p>Please navigate to other pages to search or query data.</p>
-}
+<MudContainer>
+    <MudText>Demo Blazor app powered by <MudLink Href="@AppData.ApiEndpoint" Target="_blank">@AppData.ApiEndpoint</MudLink></MudText>
+    <MudForm>
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h4" GutterBottom="true">Sign In</MudText>
+                <MudText>Don't have an account? <MudLink Href="@AppData.NexarDotCom" Target="_blank">Sign Up</MudLink></MudText>
+
+                <MudTextField @bind-Value="@_clientId" Label="Client ID" Placeholder="Client ID" Variant="Variant.Outlined" id="username" name="username"></MudTextField>
+                <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret" Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
+            </MudCardContent>
+                <MudCardActions>
+                    <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
+                </MudCardActions>
+        </MudCard>
+    </MudForm>
+</MudContainer>
 
 @code {
-    Models.Login _model = new Models.Login();
-    Validations validations;
-    bool _loading;
-
-    void ValidateGuid(ValidatorEventArgs e)
-    {
-        var text = Convert.ToString(e.Value);
-        e.Status =
-            Guid.TryParse(text, out _) ? ValidationStatus.Success : ValidationStatus.Error;
-    }
+    string _clientId;
+    string _clientSecret;
 
     /// <summary>
     /// Get token from the user input, then go to search.
     /// </summary>
     async Task LoginAsync()
     {
-        if (!validations.ValidateAll())
-            return;
-
-        _loading = true;
         try
         {
             using var client = new HttpClient();
-            AppData.Token = await client.GetNexarTokenAsync(_model.ClientId, _model.ClientSecret, AppData.Authority);
+            AppData.Token = await client.GetNexarTokenAsync(_clientId, _clientSecret, AppData.Authority);
             NavManager.NavigateTo("search");
+
         }
         catch (Exception ex)
         {
             await ShowErrorAsync(ex.Message);
-        }
-        finally
-        {
-            _loading = false;
         }
     }
 

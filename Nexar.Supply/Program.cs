@@ -1,8 +1,6 @@
-using Blazorise;
-using Blazorise.Bootstrap;
-using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor.Services;
 using System;
 using System.Threading.Tasks;
 
@@ -16,14 +14,7 @@ namespace Nexar.Supply
             builder.RootComponents.Add<App>("#app");
 
             builder.Services
-                .AddBlazorise(options =>
-                {
-                    options.ChangeTextOnKeyPress = true;
-                })
-                .AddBootstrapProviders()
-                .AddFontAwesomeIcons();
-
-            builder.Services
+                .AddMudServices()
                 .AddSingleton<AppData>()
                 .AddNexarClient()
                 .ConfigureHttpClient((sp, client) =>

@@ -1,37 +1,38 @@
 @page "/manufacturers"
 @inherits AbstractPage
-@using Blazorise.DataGrid
 @inject NexarClient Client
 
-<h1>Manufacturers</h1>
-
-@if (manufacturers == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <DataGrid TItem="IManufacturers_SupManufacturers"
-              Data="@manufacturers"
-              Filterable="true"
-              FilterMethod="DataGridFilterMethod.Contains"
-              ShowPager="true"
-              PagerPosition="DataGridPagerPosition.Top"
-              ShowPageSizes="true">
-        <DataGridColumns>
-            <DataGridColumn TItem="IManufacturers_SupManufacturers"
-                            Field="@nameof(IManufacturers_SupManufacturers.Id)" Caption="ID" Sortable="false" Width="60px" />
-            <DataGridColumn TItem="IManufacturers_SupManufacturers"
-                            Field="@nameof(IManufacturers_SupManufacturers.Name)" Caption="Name" />
-            <DataGridColumn TItem="IManufacturers_SupManufacturers"
-                            Field="@nameof(IManufacturers_SupManufacturers.HomepageUrl)" Caption="Homepage">
-                <DisplayTemplate>
-                    <a href="@context.HomepageUrl" target="_blank">@context.HomepageUrl</a>
-                </DisplayTemplate>
-            </DataGridColumn>
-        </DataGridColumns>
-    </DataGrid>
-}
+<MudContainer>
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h4">Manufacturers</MudText>
+            @if (manufacturers == null)
+            {
+                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+            }
+            else
+            {
+                <MudTable Items="@manufacturers">
+                    <ToolBarContent>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>ID</MudTh>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Homepage</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="ID">@context.Id</MudTd>
+                        <MudTd DataLabel="Name">@context.Name</MudTd>
+                        <MudTd DataLabel="Homepage"><MudLink Href="@context.HomepageUrl" Target="_blank">@context.HomepageUrl</MudLink></MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
 
 @code {
     IReadOnlyList<IManufacturers_SupManufacturers> manufacturers;
@@ -44,7 +45,6 @@ else
             EnsureNoErrors(res);
 
             manufacturers = res.Data.SupManufacturers;
-            StateHasChanged();
         }
         catch (Exception ex)
         {

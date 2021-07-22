@@ -1,0 +1,25 @@
+﻿@inject AppData AppData
+
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Filled.Login">Sign In</MudNavLink>
+    @if (AppData.Token != null)
+    {
+        <MudNavLink Href="/search" Match="NavLinkMatch.All" Icon="@Icons.Filled.Search">Search</MudNavLink>
+        <MudNavLink Href="/attributes" Match="NavLinkMatch.All" Icon="@Icons.Filled.Attachment">Attributes</MudNavLink>
+        <MudNavLink Href="/categories" Match="NavLinkMatch.All" Icon="@Icons.Filled.Category">Categories</MudNavLink>
+        <MudNavLink Href="/manufacturers" Match="NavLinkMatch.All" Icon="@Icons.Filled.Business">Manufacturers</MudNavLink>
+        <MudNavLink Href="/sellers" Match="NavLinkMatch.All" Icon="@Icons.Filled.ShoppingCart">Sellers</MudNavLink>
+    }
+</MudNavMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AppData.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AppData.OnChange -= StateHasChanged;
+    }
+}

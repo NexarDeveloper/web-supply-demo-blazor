@@ -1,62 +1,26 @@
 @page "/categories"
 @inherits AbstractPage
-@using Blazorise.TreeView
 @inject NexarClient Client
 
-<h1>Categories</h1>
-
-@if (Items == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <TreeView Nodes="Items"
-              GetChildNodes="@(item => item.Children)"
-              HasChildNodes="@(item => item.Children.Count > 0)"
-              @bind-SelectedNode="selectedNode">
-        <NodeContent>
-            @if (selectedNode == context)
-                {
-                <Button Type="ButtonType.Link" Clicked="OnClicked">@context.Info.Name ...</Button>
-                }
-                else
-                {
-                @context.Info.Name
-                }
-        </NodeContent>
-    </TreeView>
-
-    @if (selectedNode != null)
-    {
-        <Modal @ref="modalRef" Style="">
-            <ModalContent Centered="true" Size="ModalSize.Large">
-                <ModalHeader>
-                    <ModalTitle>Category details</ModalTitle>
-                    <CloseButton />
-                </ModalHeader>
-                <ModalBody>
-                    <Field>
-                        <FieldLabel>ID</FieldLabel>
-                        <TextEdit Text="@selectedNode.Info.Id" ReadOnly="true" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Name</FieldLabel>
-                        <TextEdit Text="@selectedNode.Info.Name" ReadOnly="true" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Path</FieldLabel>
-                        <TextEdit Text="@selectedNode.Info.Path" ReadOnly="true" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Number of parts</FieldLabel>
-                        <TextEdit Text="@selectedNode.Info.NumParts.ToString()" ReadOnly="true" />
-                    </Field>
-                </ModalBody>
-            </ModalContent>
-        </Modal>
-    }
-}
+<MudContainer>
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h4" GutterBottom="true">Categories</MudText>
+            @if (TreeItems == null)
+            {
+                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+            }
+            else
+            {
+                <MudTreeView T="CategoryNode" Items="TreeItems">
+                    <ItemTemplate>
+                        <MudTreeViewItem Items="@context.Children" Value="@context" Text="@context.Info.Name" />
+                    </ItemTemplate>
+                </MudTreeView>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
 
 @code {
     public class CategoryNode
@@ -66,18 +30,10 @@ else
             Info = info;
         }
         public ICategoryInfo Info { get; }
-        public List<CategoryNode> Children { get; } = new();
+        public HashSet<CategoryNode> Children { get; } = new();
     }
 
-    Modal modalRef;
-
-    List<CategoryNode> Items;
-    CategoryNode selectedNode;
-
-    void OnClicked()
-    {
-        modalRef.Show();
-    }
+    HashSet<CategoryNode> TreeItems;
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,14 +42,14 @@ else
             var res = await Client.CategoryTrees.ExecuteAsync();
             EnsureNoErrors(res);
 
-            Items = new List<CategoryNode>();
+            TreeItems = new HashSet<CategoryNode>();
             foreach (var cat1 in res.Data.SupCategories)
             {
                 if (cat1.ParentId != "4161")
                     continue;
 
                 var item1 = new CategoryNode(cat1);
-                Items.Add(item1);
+                TreeItems.Add(item1);
                 foreach (var cat2 in cat1.Children)
                 {
                     var item2 = new CategoryNode(cat2);
@@ -105,8 +61,6 @@ else
                     }
                 }
             }
-
-            StateHasChanged();
         }
         catch (Exception ex)
         {

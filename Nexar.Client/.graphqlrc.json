@@ -4,7 +4,7 @@
   "extensions": {
     "strawberryShake": {
       "name": "NexarClient",
-      "namespace": "Nexar.Supply",
+      "namespace": "Nexar.Client",
       "url": "https://api.nexar.com/graphql/"
     }
   }

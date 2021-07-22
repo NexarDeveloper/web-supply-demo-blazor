@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
+using MudBlazor;
 using StrawberryShake;
 using System;
 using System.Threading.Tasks;
@@ -12,10 +12,9 @@ namespace Nexar.Supply.Pages
     public partial class AbstractPage : ComponentBase
     {
         /// <summary>
-        /// Common JS interop.
+        /// Modal message boxes.
         /// </summary>
-        [Inject]
-        public IJSRuntime JS { get; init; }
+        [Inject] private IDialogService DialogService { get; set; }
 
         /// <summary>
         /// Common navigation manager.
@@ -59,7 +58,7 @@ namespace Nexar.Supply.Pages
         /// </summary>
         public async Task ShowErrorAsync(string message)
         {
-            await JS.InvokeVoidAsync("alert", message);
+            await DialogService.ShowMessageBox("Error", message);
 
             AppData.Token = null;
             NavManager.NavigateTo("");
