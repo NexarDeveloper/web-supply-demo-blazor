@@ -6,13 +6,13 @@
     <MudCard>
         <MudCardContent>
             <MudText Typo="Typo.h4">Attributes</MudText>
-            @if (attributes == null)
+            @if (_attributes == null)
             {
-                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+                <MudProgressCircular Indeterminate="true" />
             }
             else
             {
-                <MudTable Items="@attributes">
+                <MudTable Items="@_attributes">
                     <ToolBarContent>
                     </ToolBarContent>
                     <HeaderContent>
@@ -37,7 +37,7 @@
 </MudContainer>
 
 @code {
-    IReadOnlyList<IAttributes_SupAttributes> attributes;
+    IReadOnlyList<IAttributes_SupAttributes> _attributes;
 
     protected override async Task OnInitializedAsync()
     {
@@ -46,7 +46,7 @@
             var res = await Client.Attributes.ExecuteAsync();
             EnsureNoErrors(res);
 
-            attributes = res.Data.SupAttributes;
+            _attributes = res.Data.SupAttributes;
         }
         catch (Exception ex)
         {

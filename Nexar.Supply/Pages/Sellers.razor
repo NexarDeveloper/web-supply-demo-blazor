@@ -6,13 +6,13 @@
     <MudCard>
         <MudCardContent>
             <MudText Typo="Typo.h4">Sellers</MudText>
-            @if (sellers == null)
+            @if (_sellers == null)
             {
-                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+                <MudProgressCircular Indeterminate="true" />
             }
             else
             {
-                <MudTable Items="@sellers">
+                <MudTable Items="@_sellers">
                     <ToolBarContent>
                     </ToolBarContent>
                     <HeaderContent>
@@ -35,7 +35,7 @@
 </MudContainer>
 
 @code {
-    IReadOnlyList<ISellers_SupSellers> sellers;
+    IReadOnlyList<ISellers_SupSellers> _sellers;
 
     protected override async Task OnInitializedAsync()
     {
@@ -44,7 +44,7 @@
             var res = await Client.Sellers.ExecuteAsync();
             EnsureNoErrors(res);
 
-            sellers = res.Data.SupSellers;
+            _sellers = res.Data.SupSellers;
         }
         catch (Exception ex)
         {

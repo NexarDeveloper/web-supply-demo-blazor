@@ -4,7 +4,6 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Hosting
 @using Microsoft.AspNetCore.WebUtilities
 @using Nexar.Client.Token
-@inject IWebAssemblyHostEnvironment HostEnvironment
 
 <MudContainer>
     <MudText>Demo Blazor app powered by <MudLink Href="@AppData.ApiEndpoint" Target="_blank">@AppData.ApiEndpoint</MudLink></MudText>
@@ -14,8 +13,10 @@
                 <MudText Typo="Typo.h4" GutterBottom="true">Sign In</MudText>
                 <MudText>Don't have an account? <MudLink Href="@AppData.NexarDotCom" Target="_blank">Sign Up</MudLink></MudText>
 
-                <MudTextField @bind-Value="@_clientId" Label="Client ID" Placeholder="Client ID" Variant="Variant.Outlined" id="username" name="username"></MudTextField>
-                <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret" Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
+                <MudTextField @bind-Value="@_clientId" Label="Client ID" Placeholder="Client ID"
+                              Variant="Variant.Outlined" id="username" name="username"></MudTextField>
+                <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret"
+                              Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
             </MudCardContent>
                 <MudCardActions>
                     <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
@@ -55,10 +56,6 @@
         if (AppData.Token != null)
             return;
 
-        // apply mode
-        if (HostEnvironment.IsStaging())
-            AppData.NexarMode = Mode.Dev;
-
         var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
         try
         {
@@ -92,7 +89,6 @@
         {
             await ShowErrorAsync(ex.Message);
             NavManager.NavigateTo("");
-            return;
         }
     }
 }
