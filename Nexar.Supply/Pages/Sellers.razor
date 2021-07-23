@@ -5,7 +5,7 @@
 <MudContainer>
     <MudCard>
         <MudCardContent>
-            <MudText Typo="Typo.h4">Sellers</MudText>
+            <MudText Typo="Typo.h4" GutterBottom="true">Sellers</MudText>
             @if (_sellers == null)
             {
                 <MudProgressCircular Indeterminate="true" />
@@ -13,8 +13,6 @@
             else
             {
                 <MudTable Items="@_sellers">
-                    <ToolBarContent>
-                    </ToolBarContent>
                     <HeaderContent>
                         <MudTh>ID</MudTh>
                         <MudTh>Name</MudTh>
