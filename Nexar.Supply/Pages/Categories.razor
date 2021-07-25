@@ -14,7 +14,7 @@
             {
                 <MudTreeView Items="_treeItems">
                     <ItemTemplate>
-                        <MudTreeViewItem Items="@context.Children" Value="@context" Text="@context.Info.Name" />
+                        <MudTreeViewItem Items="@context.Items" Value="@context" Text="@context.Tag.Name" />
                     </ItemTemplate>
                 </MudTreeView>
             }
@@ -23,17 +23,17 @@
 </MudContainer>
 
 @code {
-    public class CategoryNode
+    public class CategoryItem
     {
-        public CategoryNode(ICategoryInfo info)
+        public CategoryItem(ICategoryInfo tag)
         {
-            Info = info;
+            Tag = tag;
         }
-        public ICategoryInfo Info { get; }
-        public HashSet<CategoryNode> Children { get; } = new();
+        public ICategoryInfo Tag { get; }
+        public HashSet<CategoryItem> Items { get; } = new();
     }
 
-    HashSet<CategoryNode> _treeItems;
+    HashSet<CategoryItem> _treeItems;
 
     protected override async Task OnInitializedAsync()
     {
@@ -42,22 +42,22 @@
             var res = await Client.CategoryTrees.ExecuteAsync();
             EnsureNoErrors(res);
 
-            _treeItems = new HashSet<CategoryNode>();
+            _treeItems = new HashSet<CategoryItem>();
             foreach (var cat1 in res.Data.SupCategories)
             {
                 if (cat1.ParentId != "4161")
                     continue;
 
-                var item1 = new CategoryNode(cat1);
+                var item1 = new CategoryItem(cat1);
                 _treeItems.Add(item1);
                 foreach (var cat2 in cat1.Children)
                 {
-                    var item2 = new CategoryNode(cat2);
-                    item1.Children.Add(item2);
+                    var item2 = new CategoryItem(cat2);
+                    item1.Items.Add(item2);
                     foreach (var cat3 in cat2.Children)
                     {
-                        var item3 = new CategoryNode(cat3);
-                        item2.Children.Add(item3);
+                        var item3 = new CategoryItem(cat3);
+                        item2.Items.Add(item3);
                     }
                 }
             }

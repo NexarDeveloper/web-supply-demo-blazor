@@ -34,6 +34,9 @@
     /// </summary>
     async Task LoginAsync()
     {
+        if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
+            return;
+
         try
         {
             using var client = new HttpClient();

@@ -90,16 +90,16 @@
     async Task<IEnumerable<string>> AutocompleteAsync(string value)
     {
         if (string.IsNullOrEmpty(value))
-            return Array.Empty<string>();
+            return null;
 
         var res = await Client.Suggest.ExecuteAsync(value);
         if (res.Errors.Count > 0)
         {
-            return Array.Empty<string>();
+            return null;
         }
         else
         {
-            return res.Data.SupSuggest.Select(x => x.Text).Distinct();
+            return res.Data.SupSuggest.Select(x => x.Text).ToHashSet();
         }
     }
 

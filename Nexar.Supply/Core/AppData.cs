@@ -4,7 +4,7 @@ namespace Nexar.Supply
 {
     /// <summary>
     /// The application state and options. Different modes and URLs are only
-    /// needed for internal development. Clients normally use *.nexar.com URLs.
+    /// needed for internal development. Clients normally use nexar.com URLs.
     /// </summary>
     public class AppData
     {

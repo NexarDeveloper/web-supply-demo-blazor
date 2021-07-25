@@ -7,7 +7,10 @@
 
 <MudLayout>
     <MudAppBar Elevation="0">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        @if (!_drawerOpen)
+        {
+            <MudIconButton Icon="@Icons.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())" />
+        }
         <img src="/brand.png" style="width:32px; height: 32px" />
         <MudAppBarSpacer />
         <MudIconButton Icon="@Icons.Filled.Search" Color="Color.Inherit" Title="Octopart search page" Link="https://octopart.com/api/v4/values" Target="_blank" />
@@ -16,6 +19,10 @@
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" Elevation="1">
         <MudDrawerHeader>
+            @if (_drawerOpen)
+            {
+                <MudIconButton Icon="@Icons.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())" />
+            }
             <MudText Typo="Typo.h6">Nexar.Supply</MudText><MudBadge>Demo</MudBadge>
         </MudDrawerHeader>
         <NavMenu />
