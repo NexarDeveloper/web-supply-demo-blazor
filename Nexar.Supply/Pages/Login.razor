@@ -18,9 +18,13 @@
                 <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret"
                               Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
             </MudCardContent>
-                <MudCardActions>
-                    <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
-                </MudCardActions>
+            <MudCardActions>
+                <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
+                @if (_loading)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+            </MudCardActions>
         </MudCard>
     </MudForm>
 </MudContainer>
@@ -28,6 +32,7 @@
 @code {
     string _clientId;
     string _clientSecret;
+    bool _loading;
 
     /// <summary>
     /// Get token from the user input, then go to search.
@@ -39,6 +44,7 @@
 
         try
         {
+            _loading = true;
             using var client = new HttpClient();
             AppData.Token = await client.GetNexarTokenAsync(_clientId, _clientSecret, AppData.Authority);
             NavManager.NavigateTo("search");
@@ -47,6 +53,10 @@
         catch (Exception ex)
         {
             await ShowErrorAsync(ex.Message);
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 
