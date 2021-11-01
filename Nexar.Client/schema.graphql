@@ -14,6 +14,10 @@ type Query {
   desWorkspaces(where: DesWorkspaceFilterInput): [DesWorkspace!]!
   "Search a specific workspace by its unique identifier."
   desWorkspaceById("The node identifier for a workspace." id: ID!): DesWorkspace
+  "Get a list of workspace locations."
+  desWorkspaceLocations: [DesWorkspaceLocation!]!
+  "Get a list of specified settings."
+  desSettings(workspaceUrl: String! names: [String!]!): [String]!
   desSharedWithMe: DesSharedWithMe!
   desTeam(workspaceUrl: String!): DesTeam!
   desUsers(workspaceUrl: String! ids: [String!]!): [DesUser]!
@@ -24,6 +28,7 @@ type Query {
   desDesignItemById(id: ID!): DesDesignItem
   desLibrary(workspaceUrl: String!): DesLibrary!
   desComponentById(id: ID!): DesComponent
+  desRevisionDetailsById(id: ID!): DesRevisionDetails
   "Search for comment threads associated with a project."
   desCommentThreads("The node identifier for a project (This is the project field named \"id\")." projectId: ID!): [DesCommentThread!]!
   "Search for a specific comment thread associated with a project."
@@ -61,6 +66,8 @@ type Mutation {
   desUpdateComment(input: DesUpdateCommentInput!): DesUpdateCommentPayload!
   desCreateCommentThread(input: DesCreateCommentThreadInput!): DesCreateCommentThreadPayload!
   desDeleteCommentThread(input: DesDeleteCommentThreadInput!): DesDeleteCommentThreadPayload!
+  "Releases the specified component."
+  desReleaseComponent(input: DesReleaseComponentInput!): DesReleaseComponentPayload!
   "Creates a user."
   desCreateUser(input: DesCreateUserInput!): DesCreateUserPayload!
   "Deletes the specified user."
@@ -219,7 +226,7 @@ type DesComponent implements Node {
   "The summary of function or other performance details for this component."
   description: String!
   "The component revision."
-  revision: String!
+  revision: DesRevision!
   model3D: DesModel3D
 }
 
@@ -417,7 +424,26 @@ type DesLayerProperty {
 }
 
 type DesLibrary {
+  "Gets library components."
   components(first: Int after: String last: Int before: String): DesComponentConnection
+  "Gets revision naming schemes."
+  revisionNamingSchemes: [DesRevisionNamingScheme!]!
+  "Gets life cycle definitions."
+  lifeCycleDefinitions: [DesLifeCycleDefinition!]!
+  "Gets the first allowed naming scheme by the content kind."
+  revisionNamingSchemeByContentTypeKind(kind: DesContentTypeKind!): DesRevisionNamingScheme!
+  "Gets the first allowed life cycle by the content kind."
+  lifeCycleDefinitionByContentTypeKind(kind: DesContentTypeKind!): DesLifeCycleDefinition!
+}
+
+"Revision naming scheme details obtained by `desLibrary\/lifeCycleDefinitions`."
+type DesLifeCycleDefinition {
+  lifeCycleDefinitionId: String!
+  name: String!
+}
+
+type DesLifeCycleState {
+  name: String!
 }
 
 type DesManufacturePackage {
@@ -621,6 +647,10 @@ type DesRelease implements Node {
   releaseId: String!
 }
 
+type DesReleaseComponentPayload {
+  errors: [DesPayloadError!]!
+}
+
 "A connection to a list of items."
 type DesReleaseConnection {
   "Information to aid in pagination."
@@ -660,6 +690,31 @@ type DesRemoveUsersFromGroupPayload {
   errors: [DesPayloadError!]!
 }
 
+"Revision details ID for later use or full details."
+type DesRevision {
+  "The full revision details."
+  details: DesRevisionDetails!
+  "The revision details node ID for later use."
+  id: ID!
+}
+
+"Revision details."
+type DesRevisionDetails {
+  lifeCycleState: DesLifeCycleState!
+  childCount: Int!
+  parentCount: Int!
+  "The node ID."
+  id: ID!
+  description: String
+  comment: String
+}
+
+"Revision naming scheme details obtained by `desLibrary\/revisionNamingSchemes`."
+type DesRevisionNamingScheme {
+  revisionNamingSchemeId: String!
+  name: String!
+}
+
 "A schematic contains the design parts and logical connections."
 type DesSchematic {
   "The list of all part instances used in this schematic grouped into pages."
@@ -678,7 +733,6 @@ type DesSharedWithMe {
   projects: [DesProject!]!
   commentThreads: [DesCommentThread!]!
   manufacturePackages: [DesManufacturePackage!]!
-  name: String!
 }
 
 type DesSize {
@@ -898,6 +952,8 @@ type DesWorkflowVariable {
 type DesWorkspace implements Node {
   "The node identifier for the workspace (used by `DesWorkspaceById`)."
   id: ID!
+  "The location of this workspace."
+  location: DesWorkspaceLocation!
   "The resource managing components for this workspace."
   library: DesLibrary!
   "The list of members authorized for this workspace."
@@ -916,6 +972,15 @@ type DesWorkspace implements Node {
   description: String
   "Tells if the workspace is the current user default."
   isDefault: Boolean!
+}
+
+type DesWorkspaceLocation {
+  "The name of the location."
+  name: String!
+  "The preferred Nexar API URL to use for this location."
+  apiServiceUrl: String!
+  "The preferred files service URL to use for this location."
+  filesServiceUrl: String!
 }
 
 "Information about pagination in a connection."
@@ -1080,6 +1145,34 @@ input DesRectangleInput {
   pos2: DesPosition2DInput!
 }
 
+input DesReleaseComponentFileInput {
+  "Uploaded file ID."
+  fileId: String!
+  "Relative path of the source file."
+  relativePath: String!
+}
+
+input DesReleaseComponentInput {
+  workspaceUrl: String!
+  componentReleaseFolder: String!
+  componentItemName: String!
+  componentRevisionNamingSchemeId: String
+  componentLifeCycleDefinitionId: String
+  componentComment: String
+  componentDescription: String
+  parameters: [DesRevisionParameterInput!]!
+  symbolReleaseFolder: String!
+  symbolItemName: String!
+  symbolFiles: [DesReleaseComponentFileInput!]!
+  symbolRevisionNamingSchemeId: String
+  symbolLifeCycleDefinitionId: String
+  footprintReleaseFolder: String!
+  footprintItemName: String!
+  footprintFiles: [DesReleaseComponentFileInput!]!
+  footprintRevisionNamingSchemeId: String
+  footprintLifeCycleDefinitionId: String
+}
+
 "A release is a published version of a design with additional generated files for manufacturing."
 input DesReleaseFilterInput {
   and: [DesReleaseFilterInput!]
@@ -1109,6 +1202,11 @@ input DesRemoveUsersFromGroupInput {
   id: ID!
   "User IDs."
   userIds: [String!]!
+}
+
+input DesRevisionParameterInput {
+  name: String!
+  value: String!
 }
 
 "A schematic contains the design parts and logical connections."
@@ -1288,6 +1386,56 @@ input DesUriHostNameTypeOperationFilterInput {
   neq: DesUriHostNameType
   in: [DesUriHostNameType!]
   nin: [DesUriHostNameType!]
+}
+
+enum DesContentTypeKind {
+  COMPONENT
+  EMBEDDED_DESIGN
+  FPGA_DESIGN
+  OPEN_BUS
+  PART_CHOICE_LIST
+  PCB_COMPONENT
+  PCB_DESIGN
+  PCB_DOCUMENT
+  PCB_BLANK
+  PCB_ASSEMBLY
+  PCB_MODEL3D
+  SCHEMATIC_SHEET
+  SCHEMATIC_TEMPLATE
+  SIMULATION_MODEL
+  SI_MODEL
+  SYMBOL
+  OUTPUT_JOB
+  MORFIK_PACKAGE
+  MORFIK_WEB_RESOURCE
+  MORFIK_X_APP_DESIGN
+  MORFIK_X_APP_IMAGE
+  MORFIK_X_APP_SET
+  WEB_ITEM
+  DXP_ADDON
+  DATA_CLASS
+  DEVICE_CLASS
+  RICH_TEXT
+  PREFERENCES
+  MODEL3D
+  COMPONENT_TEMPLATE
+  LAYER_STACK
+  BOM_TEMPLATE
+  SCRIPT
+  PROJECT
+  PROJECT_TEMPLATE
+  DATA_SHEET
+  DRAFTSMAN_DOCUMENT_TEMPLATE
+  DRAFTSMAN_SHEET_TEMPLATE
+  PROJECT_REVIEW_PACKAGE
+  PLM_INSTANCE
+  PLM_PUBLISH_TEMPLATE
+  PCB_BLOCK
+  BINARY_FILE
+  DXP_PLATFORM
+  DXP_SDK
+  DXP_PLUGIN
+  BMS_AUTO_GENERATED_COMPONENTS
 }
 
 enum DesLayerType {
