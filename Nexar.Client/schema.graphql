@@ -9,20 +9,31 @@ scalar Map
 scalar Time
 
 type Query {
-  node(id: ID!): Node
+  "Fetches an object given its ID."
+  node("ID of the object." id: ID!): Node
+  "Lookup nodes by a list of IDs."
+  nodes("The list of node IDs." ids: [ID!]!): [Node]!
   "Search for workspaces associated with this account."
   desWorkspaces(where: DesWorkspaceFilterInput): [DesWorkspace!]!
   "Search a specific workspace by its unique identifier."
   desWorkspaceById("The node identifier for a workspace." id: ID!): DesWorkspace
   "Get a list of workspace locations."
   desWorkspaceLocations: [DesWorkspaceLocation!]!
-  "Get a list of specified settings."
+  "Gets the specified settings."
   desSettings(workspaceUrl: String! names: [String!]!): [String]!
+  "Gets life cycle definitions."
+  desLifeCycleDefinitions(workspaceUrl: String!): [DesLifeCycleDefinition!]!
+  "Gets the first allowed life cycle by the content kind."
+  desLifeCycleDefinitionByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesLifeCycleDefinition!
+  "Gets revision naming schemes."
+  desRevisionNamingSchemes(workspaceUrl: String!): [DesRevisionNamingScheme!]!
+  "Gets the first allowed naming scheme by the content kind."
+  desRevisionNamingSchemeByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesRevisionNamingScheme!
   desSharedWithMe: DesSharedWithMe!
   desTeam(workspaceUrl: String!): DesTeam!
   desUsers(workspaceUrl: String! ids: [String!]!): [DesUser]!
   "Search projects within a workspace with results in paged groups."
-  desProjects(first: Int after: String last: Int before: String "The web address of a workspace." workspaceUrl: String! "Optional filter for projects with workflows completed after the specific `DateTime`." completedWorkflowAfter: DateTime where: DesProjectFilterInput): DesProjectConnection
+  desProjects("The web address of a workspace." workspaceUrl: String! "Optional filter for projects with workflows completed after the specific `DateTime`." completedWorkflowAfter: DateTime "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesProjectFilterInput): DesProjectConnection
   "Search a specific project by its unique identifier."
   desProjectById("The node identifier for a project." id: ID!): DesProject
   desDesignItemById(id: ID!): DesDesignItem
@@ -34,8 +45,8 @@ type Query {
   "Search for a specific comment thread associated with a project."
   desCommentThread("The node identifier for a project (This is the project field named \"id\")." projectId: ID! "The reference identifier for a comment thread." threadId: String!): DesCommentThread
   desReleaseById(id: ID!): DesRelease
-  desPackages: [DesManufacturePackage!]!
-  desPackageById(id: ID!): DesManufacturePackage
+  desManufacturePackages: [DesManufacturePackage!]!
+  desManufacturePackageById(id: ID!): DesManufacturePackage
   desBomById(id: ID!): DesBom
   authorizeByCredentials(username: String! password: String!): DesAuthorizationToken!
   "Get all attributes"
@@ -233,7 +244,7 @@ type DesComponent implements Node {
 "A connection to a list of items."
 type DesComponentConnection {
   "Information to aid in pagination."
-  pageInfo: DesPageInfo!
+  pageInfo: PageInfo!
   "A list of edges."
   edges: [DesComponentEdge!]
   "A flattened list of the nodes."
@@ -302,7 +313,7 @@ type DesDeleteUserPayload {
 "A design manages all of the schematic, PCB, and BOM content for a project."
 type DesDesign {
   "The list of published versions of the design grouped into pages."
-  releases(first: Int after: String last: Int before: String where: DesReleaseFilterInput): DesReleaseConnection
+  releases("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesReleaseFilterInput): DesReleaseConnection
   "The most recent version of the design."
   workInProgress: DesWorkInProgress!
 }
@@ -344,7 +355,7 @@ type DesDesignItem implements Node {
 "A connection to a list of items."
 type DesDesignItemConnection {
   "Information to aid in pagination."
-  pageInfo: DesPageInfo!
+  pageInfo: PageInfo!
   "A list of edges."
   edges: [DesDesignItemEdge!]
   "A flattened list of the nodes."
@@ -425,15 +436,7 @@ type DesLayerProperty {
 
 type DesLibrary {
   "Gets library components."
-  components(first: Int after: String last: Int before: String): DesComponentConnection
-  "Gets revision naming schemes."
-  revisionNamingSchemes: [DesRevisionNamingScheme!]!
-  "Gets life cycle definitions."
-  lifeCycleDefinitions: [DesLifeCycleDefinition!]!
-  "Gets the first allowed naming scheme by the content kind."
-  revisionNamingSchemeByContentTypeKind(kind: DesContentTypeKind!): DesRevisionNamingScheme!
-  "Gets the first allowed life cycle by the content kind."
-  lifeCycleDefinitionByContentTypeKind(kind: DesContentTypeKind!): DesLifeCycleDefinition!
+  components("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesComponentConnection
 }
 
 "Revision naming scheme details obtained by `desLibrary\/lifeCycleDefinitions`."
@@ -446,9 +449,11 @@ type DesLifeCycleState {
   name: String!
 }
 
-type DesManufacturePackage {
-  variants: [DesReleaseVariant!]!
+type DesManufacturePackage implements Node {
+  "The node identifier for this project (used by `desManufacturePackageById`)."
+  id: ID!
   name: String!
+  downloadUrl: String!
 }
 
 type DesManufacturerPart {
@@ -513,7 +518,7 @@ type DesPcb {
   "The details of the layer structure of this PCB."
   layerStack: DesStackup
   "The list of all part instances used in this PCB grouped into pages."
-  designItems(first: Int after: String last: Int before: String "An optional array of designators to search." designators: [String!]): DesDesignItemConnection
+  designItems("An optional array of designators to search." designators: [String!] "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesDesignItemConnection
   "The list of all electrically connected regions in this PCB."
   nets("An optional array of names to search." names: [String!]): [DesNet!]!
   "The list of all part connection targets in this PCB."
@@ -588,7 +593,7 @@ type DesProject implements Node {
   "The `DateTime` of the most recent workflow completion associated with this project."
   completedWorkflowAt: DateTime
   "The Altium 365 web address."
-  url: Url!
+  url: String!
   "The reference identifier for this project."
   projectId: String!
   "The assigned name for this project."
@@ -606,7 +611,7 @@ type DesProject implements Node {
 "A connection to a list of items."
 type DesProjectConnection {
   "Information to aid in pagination."
-  pageInfo: DesPageInfo!
+  pageInfo: PageInfo!
   "A list of edges."
   edges: [DesProjectEdge!]
   "A flattened list of the nodes."
@@ -654,7 +659,7 @@ type DesReleaseComponentPayload {
 "A connection to a list of items."
 type DesReleaseConnection {
   "Information to aid in pagination."
-  pageInfo: DesPageInfo!
+  pageInfo: PageInfo!
   "A list of edges."
   edges: [DesReleaseEdge!]
   "A flattened list of the nodes."
@@ -718,7 +723,7 @@ type DesRevisionNamingScheme {
 "A schematic contains the design parts and logical connections."
 type DesSchematic {
   "The list of all part instances used in this schematic grouped into pages."
-  designItems(first: Int after: String last: Int before: String): DesDesignItemConnection
+  designItems("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesDesignItemConnection
   "The list of all logical part connections in this schematic."
   nets("An optional array of names to search." names: [String!]): [DesNet!]!
   "The list of all comment threads related to this schematic."
@@ -731,8 +736,8 @@ type DesSchematic {
 
 type DesSharedWithMe {
   projects: [DesProject!]!
-  commentThreads: [DesCommentThread!]!
   manufacturePackages: [DesManufacturePackage!]!
+  commentThreads: [DesCommentThread!]!
 }
 
 type DesSize {
@@ -984,7 +989,7 @@ type DesWorkspaceLocation {
 }
 
 "Information about pagination in a connection."
-type DesPageInfo {
+type PageInfo {
   "Indicates whether more edges exist following the set defined by the clients arguments."
   hasNextPage: Boolean!
   "Indicates whether more edges exist prior the set defined by the clients arguments."
@@ -995,12 +1000,12 @@ type DesPageInfo {
   endCursor: String
 }
 
-input DesBooleanOperationFilterInput {
+input BooleanOperationFilterInput {
   eq: Boolean
   neq: Boolean
 }
 
-input DesComparableDateTimeOperationFilterInput {
+input ComparableDateTimeOperationFilterInput {
   eq: DateTime
   neq: DateTime
   in: [DateTime!]
@@ -1015,7 +1020,7 @@ input DesComparableDateTimeOperationFilterInput {
   nlte: DateTime
 }
 
-input DesComparableInt32OperationFilterInput {
+input ComparableInt32OperationFilterInput {
   eq: Int
   neq: Int
   in: [Int!]
@@ -1030,7 +1035,7 @@ input DesComparableInt32OperationFilterInput {
   nlte: Int
 }
 
-input DesComparableNullableOfDateTimeOperationFilterInput {
+input ComparableNullableOfDateTimeOperationFilterInput {
   eq: DateTime
   neq: DateTime
   in: [DateTime]
@@ -1127,17 +1132,17 @@ input DesProjectFilterInput {
   and: [DesProjectFilterInput!]
   or: [DesProjectFilterInput!]
   "The Altium 365 web address."
-  url: DesUriFilterInput
+  url: StringOperationFilterInput
   "The reference identifier for this project."
-  projectId: DesStringOperationFilterInput
+  projectId: StringOperationFilterInput
   "The assigned name for this project."
-  name: DesStringOperationFilterInput
+  name: StringOperationFilterInput
   "The summary of this project content or purpose."
-  description: DesStringOperationFilterInput
+  description: StringOperationFilterInput
   "The `DateTime` when this project was created."
-  createdAt: DesComparableNullableOfDateTimeOperationFilterInput
+  createdAt: ComparableNullableOfDateTimeOperationFilterInput
   "The `DateTime` when this project was last modified."
-  updatedAt: DesComparableNullableOfDateTimeOperationFilterInput
+  updatedAt: ComparableNullableOfDateTimeOperationFilterInput
 }
 
 input DesRectangleInput {
@@ -1161,13 +1166,17 @@ input DesReleaseComponentInput {
   componentComment: String
   componentDescription: String
   parameters: [DesRevisionParameterInput!]!
+  "The symbol folder path, existing or to be created."
   symbolReleaseFolder: String!
-  symbolItemName: String!
+  "The symbol name. Use null to be generated."
+  symbolItemName: String
   symbolFiles: [DesReleaseComponentFileInput!]!
   symbolRevisionNamingSchemeId: String
   symbolLifeCycleDefinitionId: String
+  "The footprint folder path, existing or to be created."
   footprintReleaseFolder: String!
-  footprintItemName: String!
+  "The footprint name. Use null to be generated."
+  footprintItemName: String
   footprintFiles: [DesReleaseComponentFileInput!]!
   footprintRevisionNamingSchemeId: String
   footprintLifeCycleDefinitionId: String
@@ -1178,13 +1187,13 @@ input DesReleaseFilterInput {
   and: [DesReleaseFilterInput!]
   or: [DesReleaseFilterInput!]
   "The node identifier for this release (used by `desReleaseById`)."
-  id: DesStringOperationFilterInput
+  id: StringOperationFilterInput
   "The `DateTime` when this release was created."
-  createdAt: DesComparableDateTimeOperationFilterInput
+  createdAt: ComparableDateTimeOperationFilterInput
   "The summary of this release content or purpose."
-  description: DesStringOperationFilterInput
+  description: StringOperationFilterInput
   "The reference identifier for this release."
-  releaseId: DesStringOperationFilterInput
+  releaseId: StringOperationFilterInput
 }
 
 "A variant contains a specific configuration of a base design."
@@ -1192,9 +1201,9 @@ input DesReleaseVariantFilterInput {
   and: [DesReleaseVariantFilterInput!]
   or: [DesReleaseVariantFilterInput!]
   "The descriptive label for this design variant."
-  name: DesStringOperationFilterInput
+  name: StringOperationFilterInput
   "The list of schematic documents for this design variant."
-  schematics: DesListFilterInputTypeOfDesSchematicFilterInput
+  schematics: ListFilterInputTypeOfDesSchematicFilterInput
 }
 
 input DesRemoveUsersFromGroupInput {
@@ -1214,9 +1223,9 @@ input DesSchematicFilterInput {
   and: [DesSchematicFilterInput!]
   or: [DesSchematicFilterInput!]
   "The reference identifier for this schematic."
-  documentId: DesStringOperationFilterInput
-  parentIds: DesListStringOperationFilterInput
-  units: DesComparableInt32OperationFilterInput
+  documentId: StringOperationFilterInput
+  parentIds: ListStringOperationFilterInput
+  units: ComparableInt32OperationFilterInput
 }
 
 input DesTerminateWorkflowsInput {
@@ -1250,9 +1259,9 @@ input DesWipVariantFilterInput {
   and: [DesWipVariantFilterInput!]
   or: [DesWipVariantFilterInput!]
   "The descriptive label for this design variant."
-  name: DesStringOperationFilterInput
+  name: StringOperationFilterInput
   "The list of schematic documents for this design variant."
-  schematics: DesListFilterInputTypeOfDesSchematicFilterInput
+  schematics: ListFilterInputTypeOfDesSchematicFilterInput
 }
 
 input DesWorkflowAttachmentVariableInput {
@@ -1267,13 +1276,13 @@ input DesWorkflowDefinitionFilterInput {
   and: [DesWorkflowDefinitionFilterInput!]
   or: [DesWorkflowDefinitionFilterInput!]
   "The reference identifier for this workflow definition."
-  workflowDefinitionId: DesStringOperationFilterInput
+  workflowDefinitionId: StringOperationFilterInput
   "The label for this workflow definition."
-  name: DesStringOperationFilterInput
+  name: StringOperationFilterInput
   "The account information for who created this workflow definition."
-  createdBy: DesStringOperationFilterInput
+  createdBy: StringOperationFilterInput
   "The `DateTime` for the creation of this workflow definition."
-  createdAt: DesComparableDateTimeOperationFilterInput
+  createdAt: ComparableDateTimeOperationFilterInput
 }
 
 "A workflow manages the execution of a logical sequence of tasks."
@@ -1281,25 +1290,25 @@ input DesWorkflowFilterInput {
   and: [DesWorkflowFilterInput!]
   or: [DesWorkflowFilterInput!]
   "The reference identifier for this workflow."
-  workflowId: DesStringOperationFilterInput
+  workflowId: StringOperationFilterInput
   "The name of the active task(s) for this workflow."
-  state: DesStringOperationFilterInput
+  state: StringOperationFilterInput
   "The account information for the owner of any action or response needed for this workflow."
-  assignee: DesStringOperationFilterInput
+  assignee: StringOperationFilterInput
   "The account information for who created this workflow."
-  createdBy: DesStringOperationFilterInput
+  createdBy: StringOperationFilterInput
   "The `DateTime` for the creation of this workflow."
-  createdAt: DesComparableDateTimeOperationFilterInput
+  createdAt: ComparableDateTimeOperationFilterInput
   "The `DateTime` for the completion of this workflow."
-  endedAt: DesComparableNullableOfDateTimeOperationFilterInput
+  endedAt: ComparableNullableOfDateTimeOperationFilterInput
   "The label for this workflow."
-  name: DesStringOperationFilterInput
+  name: StringOperationFilterInput
   "The reference identifier for definition of this workflow."
-  processDefinitionId: DesStringOperationFilterInput
+  processDefinitionId: StringOperationFilterInput
   "The label for the definition of this workflow."
-  processDefinitionName: DesStringOperationFilterInput
+  processDefinitionName: StringOperationFilterInput
   "The current condition of this workflow."
-  status: DesStringOperationFilterInput
+  status: StringOperationFilterInput
 }
 
 input DesWorkflowVariableInput {
@@ -1314,34 +1323,34 @@ input DesWorkspaceFilterInput {
   and: [DesWorkspaceFilterInput!]
   or: [DesWorkspaceFilterInput!]
   "The node identifier for the workspace (used by `DesWorkspaceById`)."
-  id: DesStringOperationFilterInput
+  id: StringOperationFilterInput
   "The descriptive label for this workspace."
-  name: DesStringOperationFilterInput
+  name: StringOperationFilterInput
   "The web address of this workspace."
-  url: DesStringOperationFilterInput
+  url: StringOperationFilterInput
   "The summary of this workspace content or purpose."
-  description: DesStringOperationFilterInput
+  description: StringOperationFilterInput
   "Tells if the workspace is the current user default."
-  isDefault: DesBooleanOperationFilterInput
+  isDefault: BooleanOperationFilterInput
 }
 
-input DesListFilterInputTypeOfDesSchematicFilterInput {
+input ListFilterInputTypeOfDesSchematicFilterInput {
   all: DesSchematicFilterInput
   none: DesSchematicFilterInput
   some: DesSchematicFilterInput
   any: Boolean
 }
 
-input DesListStringOperationFilterInput {
-  all: DesStringOperationFilterInput
-  none: DesStringOperationFilterInput
-  some: DesStringOperationFilterInput
+input ListStringOperationFilterInput {
+  all: StringOperationFilterInput
+  none: StringOperationFilterInput
+  some: StringOperationFilterInput
   any: Boolean
 }
 
-input DesStringOperationFilterInput {
-  and: [DesStringOperationFilterInput!]
-  or: [DesStringOperationFilterInput!]
+input StringOperationFilterInput {
+  and: [StringOperationFilterInput!]
+  or: [StringOperationFilterInput!]
   eq: String
   neq: String
   contains: String
@@ -1352,40 +1361,6 @@ input DesStringOperationFilterInput {
   nstartsWith: String
   endsWith: String
   nendsWith: String
-}
-
-input DesUriFilterInput {
-  and: [DesUriFilterInput!]
-  or: [DesUriFilterInput!]
-  absolutePath: DesStringOperationFilterInput
-  absoluteUri: DesStringOperationFilterInput
-  localPath: DesStringOperationFilterInput
-  authority: DesStringOperationFilterInput
-  hostNameType: DesUriHostNameTypeOperationFilterInput
-  isDefaultPort: DesBooleanOperationFilterInput
-  isFile: DesBooleanOperationFilterInput
-  isLoopback: DesBooleanOperationFilterInput
-  pathAndQuery: DesStringOperationFilterInput
-  segments: DesListStringOperationFilterInput
-  isUnc: DesBooleanOperationFilterInput
-  host: DesStringOperationFilterInput
-  port: DesComparableInt32OperationFilterInput
-  query: DesStringOperationFilterInput
-  fragment: DesStringOperationFilterInput
-  scheme: DesStringOperationFilterInput
-  originalString: DesStringOperationFilterInput
-  dnsSafeHost: DesStringOperationFilterInput
-  idnHost: DesStringOperationFilterInput
-  isAbsoluteUri: DesBooleanOperationFilterInput
-  userEscaped: DesBooleanOperationFilterInput
-  userInfo: DesStringOperationFilterInput
-}
-
-input DesUriHostNameTypeOperationFilterInput {
-  eq: DesUriHostNameType
-  neq: DesUriHostNameType
-  in: [DesUriHostNameType!]
-  nin: [DesUriHostNameType!]
 }
 
 enum DesContentTypeKind {
@@ -1493,14 +1468,6 @@ enum DesPrimitiveShape {
   ROUND
   RECTANGLE
   ROUNDED_RECTANGLE
-}
-
-enum DesUriHostNameType {
-  UNKNOWN
-  BASIC
-  DNS
-  I_PV4
-  I_PV6
 }
 
 "Used to show the filters that are applied to current search."
@@ -1996,14 +1963,6 @@ scalar DateTime
 
 "The built-in `Decimal` scalar type."
 scalar Decimal
-
-scalar Url
-
-directive @BlockAll(roles: [SupRole!]!) on FIELD_DEFINITION
-
-directive @HasPlanTier(tier: SupPlanTier!) on FIELD_DEFINITION
-
-directive @RequireAny(roles: [SupRole!]!) on FIELD_DEFINITION
 
 "Delegates a resolver to a remote schema."
 directive @delegate("The path to the field on the remote schema." path: String "The name of the schema to which this field shall be delegated to." schema: Name!) on FIELD_DEFINITION
