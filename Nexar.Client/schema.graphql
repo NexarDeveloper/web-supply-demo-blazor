@@ -30,12 +30,20 @@ type Query {
   "Gets the first allowed naming scheme by the content kind."
   desRevisionNamingSchemeByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesRevisionNamingScheme!
   desSharedWithMe: DesSharedWithMe!
+  "Gets the specified workspace team."
   desTeam(workspaceUrl: String!): DesTeam!
+  "Gets the specified workspace users by IDs."
   desUsers(workspaceUrl: String! ids: [String!]!): [DesUser]!
+  "Gets the authorized user."
+  desUserByAuth: DesUser!
+  "Gets a user by the specified global ID."
+  desUserByGlobalId(id: String!): DesUser
   "Search projects within a workspace with results in paged groups."
-  desProjects("The web address of a workspace." workspaceUrl: String! "Optional filter for projects with workflows completed after the specific `DateTime`." completedWorkflowAfter: DateTime "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesProjectFilterInput): DesProjectConnection
+  desProjects("The web address of a workspace." workspaceUrl: String! "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesProjectFilterInput): DesProjectConnection
   "Search a specific project by its unique identifier."
   desProjectById("The node identifier for a project." id: ID!): DesProject
+  "Gets the unique identifier for a project from its internal identifier."
+  desProjectIdFromAfsId(workspaceUrl: String! afsId: String! "If the project is known to be shared or internal, this parameter can be provided to make the query faster." isSharedProject: Boolean): DesProjectIdPayload!
   desDesignItemById(id: ID!): DesDesignItem
   desLibrary(workspaceUrl: String!): DesLibrary!
   desComponentById(id: ID!): DesComponent
@@ -45,10 +53,10 @@ type Query {
   "Search for a specific comment thread associated with a project."
   desCommentThread("The node identifier for a project (This is the project field named \"id\")." projectId: ID! "The reference identifier for a comment thread." threadId: String!): DesCommentThread
   desReleaseById(id: ID!): DesRelease
+  desBomById(id: ID!): DesBom
   desManufacturePackages: [DesManufacturePackage!]!
   desManufacturePackageById(id: ID!): DesManufacturePackage
-  desBomById(id: ID!): DesBom
-  authorizeByCredentials(username: String! password: String!): DesAuthorizationToken!
+  desManufacturePackageCreationJob(id: ID!): DesManufacturePackageCreationJob
   "Get all attributes"
   supAttributes: [SupAttribute!]!
   "Get manufacturer companies"
@@ -69,6 +77,14 @@ type Query {
   supSpellingCorrection("query string to correct" q: String!): [SupSpellingCorrection!]!
   "Match multiple manufacturer + mpn pairs at once.  Useful for when you have a list of parts, as with a BOM (Bill of Materials)"
   supMultiMatch("list of inputs to attempt to match" queries: [SupPartMatchQuery!]! "options when matching such as applying filters or only including authorized or in-stock parts" options: SupPartMatchOptions "user's country" country: String! = "US" "user's currency" currency: String! = "USD" "fetch latest pricing and stock data from distributor API. Company.isDistributorApi indicates if a distributor supports this feature." distributorApi: Boolean "how long to wait for distributor API to respond as a duration string (e.g. `3s` or `500ms`)" distributorApiTimeout: String! = "3s" "if needed, pass along credentials for API integrations" customPricingCredentials: [SupApiCredentials!]): [SupPartMatch!]!
+  "get a the quotes from previously submitted metadata"
+  manRapidQuotes(id: ID!): ManRapidQuoteResponse
+  manRapidQuoteRequest(id: ID!): ManRapidQuoteRequest
+  manOrder(orderId: ID!): ManOrder
+  manAssembly(id: ID!): ManAssembly
+  manListProjectOrders(id: ID!): [ManOrder]
+  manAltimadeLogin(gsid: ID): String
+  manBomResolution(projectId: ID! quoteRequestId: ID!): ManBomResolution
 }
 
 type Mutation {
@@ -97,6 +113,30 @@ type Mutation {
   desRemoveUsersFromGroup(input: DesRemoveUsersFromGroupInput!): DesRemoveUsersFromGroupPayload!
   desLaunchWorkflow(input: DesLaunchWorkflowInput!): DesLaunchWorkflowPayload!
   desTerminateWorkflows(input: DesTerminateWorkflowsInput!): DesTerminateWorkflowsPayload!
+  "Creates a manufacture package."
+  desCreateManufacturePackage(input: DesCreateManufacturePackageInput!): DesCreateManufacturePackagePayload!
+  manCreateRapidQuoteRequest(qty: Int! meta: ManBoardMetaInput! shipping: ManShippingDetailsInput): ManRapidQuoteResponse
+  "for a manufacturer to return a rapid quote reponse"
+  manRespondRapidQuoteRequest("Unique request identifier" id: ID! "Quote Data From Manufactuerer" quote: ManQuoteInput!): ID!
+  manRespondBulkRapidQuoteRequest(id: ID! quotes: [ManQuoteInput!]!): ID!
+  manUpdateBomResolution(projectId: ID! quoteRequestId: ID! newSelections: [ManPartSelectionInput!]): ManBomResolution
+  manCreateAssembly(quoteRequest: ID! commitId: ID projectId: ID!): ManCreateAssemblyResponse
+  manCreateOrder(qty: Int assemblyId: ID!): ManCreateOrderResponse
+  manUpdateOrderQty(orderId: ID! qty: Int!): ManOrder
+  manUpdateOrderShipping(orderId: ID! shipping: ManShippingDetailsInput!): ManOrder
+  "accept quote, confirm order as placed. "
+  manAcceptOrderQuote(orderId: ID! quoteId: ID!): ManOrder
+  manInsertOrderEvent(id: ID! event: ManOrderEventType attributes: String): ManOrder
+  manInsertOrderEmsAcceptEvent(input: ManOrderEmsAcceptInput!): ManOrder
+  manInsertOrderShipUpdateEvent(input: ManOrderShipEstimateInput!): ManOrder
+  manInsertOrderReviewEvent(input: ManOrderReviewInput!): ManOrder
+  manInsertOrderBatchedEvent(input: ManOrderBatchedInput!): ManOrder
+  manInsertOrderPartsOrderedEvent(input: ManOrderPartsOrderedInput!): ManOrder
+  manInsertOrderPcbsOrderedEvent(input: ManOrderPcbsOrderedInput!): ManOrder
+  manInsertOrderPartsReceivedEvent(input: ManOrderPartsReceivedInput!): ManOrder
+  manInsertOrderPcbsReceivedEvent(input: ManOrderPcbsReceivedInput!): ManOrder
+  manInsertOrderProcessStartEvent(input: ManOrderProcessStartInput!): ManOrder
+  manInsertOrderShippedEvent(input: ManOrderShippedInput!): ManOrder
 }
 
 type Subscription {
@@ -106,10 +146,6 @@ type Subscription {
 "The node interface is implemented by entities that have a global unique identifier."
 interface Node {
   id: ID!
-}
-
-type DesAuthorizationToken {
-  token: String!
 }
 
 type DesAddUsersToGroupPayload {
@@ -286,6 +322,11 @@ type DesCreateCommentThreadPayload {
   errors: [DesPayloadError!]!
 }
 
+type DesCreateManufacturePackagePayload {
+  jobId: ID!
+  errors: [DesPayloadError!]!
+}
+
 type DesCreateUserGroupPayload {
   id: ID!
 }
@@ -456,8 +497,22 @@ type DesManufacturePackage implements Node {
   downloadUrl: String!
 }
 
+type DesManufacturePackageCreationJob {
+  id: String!
+  createdAt: DateTime!
+  payload: DesManufacturePackageCreationJobPayload!
+  status: DesJobStatus!
+}
+
+type DesManufacturePackageCreationJobPayload {
+  packageId: ID
+  errors: [DesPayloadError!]!
+}
+
 type DesManufacturerPart {
   supplierParts: [DesSupplierPart!]!
+  "The Octopart ID."
+  octopartId: String
   "The manufacturer company name."
   companyName: String!
   "The part number (MPN)."
@@ -502,6 +557,7 @@ type DesPad {
   designator: String
   globalDesignator: String
   radius: Int
+  rotation: Decimal
   isPlated: Boolean
   holeSize: DesSize!
   size: DesSize2D!
@@ -590,8 +646,6 @@ type DesProject implements Node {
   previewUrl: String!
   "The list of workflows associated with this project."
   workflows("An option to search workflows that have been completed." isClosed: Boolean! = false "An option to search workflows that have been modified after a specific `DateTime`." modifiedAfter: DateTime where: DesWorkflowFilterInput): [DesWorkflow!]
-  "The `DateTime` of the most recent workflow completion associated with this project."
-  completedWorkflowAt: DateTime
   "The Altium 365 web address."
   url: String!
   "The reference identifier for this project."
@@ -625,6 +679,10 @@ type DesProjectEdge {
   cursor: String!
   "The item at the end of the edge."
   node: DesProject!
+}
+
+type DesProjectIdPayload {
+  id: ID!
 }
 
 type DesProjectParameter {
@@ -707,6 +765,7 @@ type DesRevision {
 type DesRevisionDetails {
   lifeCycleState: DesLifeCycleState!
   childCount: Int!
+  references: [DesDownloadableFile!]!
   parentCount: Int!
   "The node ID."
   id: ID!
@@ -843,7 +902,7 @@ type DesUpdateUserPayload {
   errors: [DesPayloadError!]!
 }
 
-"A user information contains the identifier and nullable extra fields."
+"User details with the identifier and nullable extra fields."
 type DesUser {
   "Null if the user no longer exists."
   groups: [DesUserGroup!]
@@ -964,7 +1023,7 @@ type DesWorkspace implements Node {
   "The list of members authorized for this workspace."
   team: DesTeam!
   "The list of projects managed in this workspace."
-  projects("An option to search projects with workflows that have been completed after a specific `DateTime`." completedWorkflowAfter: DateTime where: DesProjectFilterInput): [DesProject!]!
+  projects(where: DesProjectFilterInput): [DesProject!]!
   "The list of workflow definitions in this workspace."
   workflowDefinitions(where: DesWorkflowDefinitionFilterInput): [DesWorkflowDefinition!]
   "The list of workflows in this workspace."
@@ -1070,6 +1129,15 @@ input DesCreateCommentThreadInput {
   objectId: String
   area: DesRectangleInput
   releaseId: String
+}
+
+input DesCreateManufacturePackageInput {
+  projectId: ID!
+  vcsRevisionId: String
+  name: String!
+  description: String
+  shareWith: [String!]!
+  variantName: String
 }
 
 input DesCreateUserGroupInput {
@@ -1411,6 +1479,13 @@ enum DesContentTypeKind {
   DXP_SDK
   DXP_PLUGIN
   BMS_AUTO_GENERATED_COMPONENTS
+}
+
+enum DesJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  ERROR
 }
 
 enum DesLayerType {
@@ -1955,14 +2030,654 @@ enum SupSortDirection {
   desc
 }
 
+interface ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManAABB {
+  topLeft: ManPoint2D
+  bottomRight: ManPoint2D
+  area: ManArea
+}
+
+type ManAngle {
+  native: Int
+  radians: Float
+  degrees: Float
+}
+
+type ManArea {
+  native: Int
+  mm2: Float
+  mil2: Float
+  inSq: Float
+}
+
+type ManAssembly {
+  id: ID
+  boardMeta: ManBoardMeta
+  projectId: ID
+  commitId: ID
+  variant: String
+  bomSelection: ID
+  package: ManPackageJob
+}
+
+type ManBoardDetails {
+  path: [ManPathSegment]
+  polygon(quant: Int!): [ManPoint2D]
+  aabb: ManAABB
+}
+
+type ManBoardMeta {
+  id: ID
+  projectId: String
+  boardDetails: ManBoardDetails
+  parts: [ManPart]
+  bomIssues: ManBomIssues!
+  placementStats: ManPlacementInfo
+  minClearance: ManLength
+  minAnnularRing: ManLength
+  stackUp: [ManLayer]
+}
+
+type ManBomIssues {
+  issueCount: Int!
+  warningCount: Int!
+}
+
+type ManBomResolution {
+  parts: [ManPart!]!
+}
+
+type ManCreateAssemblyResponse {
+  assembly: ManAssembly
+}
+
+type ManCreateOrderResponse {
+  order: ManOrder
+}
+
+type ManLayer {
+  type: ManLayerType
+  thickness: ManLength
+  copperWeight: Float
+  overlayColour: ManSilkScreenColour
+  maskColour: ManSolderMaskColour
+  process: String
+  material: String
+}
+
+type ManLength {
+  mm: Float
+  mil: Float
+  inch: Float
+  "native units of 1\/10000 of a mil"
+  native: Int
+}
+
+type ManOffer {
+  price: ManPrice
+  minQty: Int
+}
+
+type ManOrder {
+  id: ID
+  reference: String
+  createdBy: ManUser
+  createdAt: DateTime
+  shipDate: DateTime
+  boardName: String
+  boardPreview: String
+  stripeSecret: ID
+  checkoutURL: String
+  rapidQuote: ManQuoteInfo
+  assembly: ManAssembly
+  shipping: ManShippingDetails
+  status: ManOrderStatus
+  events: [ManOrderEvent]
+}
+
+type ManOrderAcceptedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderBatchedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderCancelEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderCreatedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderEmsAcceptedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderPaidEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderPartsOrderedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderPartsReceivedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderPcbsOrderedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderPcbsReceivedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderProcessStartEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderReceivedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderReviewedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderShipEstimateEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+}
+
+type ManOrderShippedEvent implements ManOrderEvent {
+  eventType: ManOrderEventType!
+  timestamp: Int!
+  trackingNumber: String!
+  carrier: ManShippingCarrier!
+  trackingLink: String!
+}
+
+type ManPackageJob {
+  id: ID
+  status: String
+  errors: [String]
+}
+
+type ManPart {
+  id: ID
+  pinCount: Int
+  type: ManMountingType
+  partChoices: [ManPartChoice]
+  selectedChoice: ManPartChoice
+  name: String
+  comment: String
+  description: String
+  sourcing: ManSourcing!
+  placements: [ManPlacement]
+  placementCount: Int
+  issues: [ManPartIssue!]!
+  status: ManPartStatus
+}
+
+type ManPartChoice {
+  mpn: String
+  manufacturer: String
+  suppliers: [ManPurchaseOption]
+  description: String
+  lifecycle: String
+  octopartId: String
+  image: String
+  octopartUrl: String
+}
+
+type ManPathSegment {
+  type: ManPathType
+  vertex: ManPoint2D
+  startAngle: ManAngle
+  endAngle: ManAngle
+  radius: ManLength
+}
+
+type ManPlacement {
+  refdes: String
+  location: ManPoint2D
+  side: ManSide
+  size: ManPoint2D
+  aabb: ManAABB
+}
+
+type ManPlacementInfo {
+  bomLines: Int
+  totalPlacements: Int
+  thPlacements: Int
+  smtPlacements: Int
+  topPlacements: Int
+  botPlacements: Int
+  dualSided: Boolean
+}
+
+type ManPoint2D {
+  x: ManLength
+  y: ManLength
+}
+
+type ManPrice {
+  amount: Decimal
+  currency: ManCurrency
+}
+
+type ManPurchaseOption {
+  supplier: String
+  inventory: Int
+  sku: String
+  offers: [ManOffer]
+}
+
+type ManQuote {
+  id: ID!
+  type: String
+  items: [ManQuoteItem]
+  leadtime: Int
+  total: Decimal
+  violations: [ManViolation]
+  valid: Boolean
+}
+
+type ManQuoteInfo {
+  selectedQuote: ManQuote
+  quoteRequest: ManRapidQuoteRequest
+  response: ManRapidQuoteResponse
+}
+
+type ManQuoteItem {
+  category: ManQuoteCategory
+  amount: Decimal
+  ident: String
+}
+
+type ManRapidQuoteRequest {
+  id: ID
+  qty: Int
+  meta: ManBoardMeta
+  shipping: ManShippingDetails
+  bomResolutionUrl: String
+}
+
+type ManRapidQuoteResponse {
+  id: ID
+  request: ManRapidQuoteRequest
+  quotes(wait: Int = 5): [ManQuote]
+}
+
+type ManShippingDetails {
+  name: String
+  email: String
+  phone: String
+  line1: String
+  line2: String
+  country: String
+  city: String
+  state: String
+  postal: String
+  method: ManShippingMethod
+}
+
+type ManShippingMethod {
+  carrier: String
+  service: String
+}
+
+type ManUser {
+  "The internal user ID."
+  userId: String!
+  "Null if the user no longer exists."
+  userName: String
+  "Null if the user no longer exists."
+  email: String
+  "Null if the user no longer exists."
+  firstName: String
+  "Null if the user no longer exists."
+  lastName: String
+}
+
+type ManViolation {
+  "dot delimited string describing location of issue \nlayers.[1].process  "
+  field: String
+  type: ManViolationType
+  description: String
+}
+
+input ManAABBInput {
+  topLeft: ManPoint2DInput
+  bottomRight: ManPoint2DInput
+}
+
+input ManBoardMetaInput {
+  projectId: String
+  boardOutline: [ManPathSegmentInput]
+  parts: [ManPartInput]
+  minClearance: Int
+  minAnnularRing: Int
+  stackUp: [ManLayerInput]
+}
+
+input ManLayerInput {
+  type: ManLayerType
+  thickness: Int
+  copperWeight: Float
+  overlayColour: ManSilkScreenColour
+  maskColour: ManSolderMaskColour
+  process: String
+  material: String
+}
+
+input ManOfferInput {
+  price: ManPriceInput
+  minQty: Int
+}
+
+input ManOrderBatchedInput {
+  orderId: ID!
+}
+
+input ManOrderEmsAcceptInput {
+  orderId: ID!
+  emsReference: String
+}
+
+input ManOrderPartsOrderedInput {
+  orderId: ID!
+}
+
+input ManOrderPartsReceivedInput {
+  orderId: ID!
+}
+
+input ManOrderPcbsOrderedInput {
+  orderId: ID!
+}
+
+input ManOrderPcbsReceivedInput {
+  orderId: ID!
+}
+
+input ManOrderProcessStartInput {
+  orderId: ID!
+}
+
+input ManOrderReviewInput {
+  orderId: ID!
+}
+
+input ManOrderShipEstimateInput {
+  orderId: ID!
+  estimateDate: DateTime!
+}
+
+input ManOrderShippedInput {
+  orderId: ID!
+  trackingNumber: String
+  carrier: ManShippingCarrier
+}
+
+input ManPartChoiceInput {
+  mpn: String
+  manufacturer: String
+  suppliers: [ManPurchaseOptionInput]
+}
+
+input ManPartInput {
+  id: ID
+  type: ManMountingType
+  pinCount: Int
+  partChoices: [ManPartChoiceInput]
+  placements: [ManPlacementInput]
+}
+
+input ManPartSelectionInput {
+  part: ID!
+  selection: ID!
+  sourcing: ManSourcing!
+}
+
+input ManPathSegmentInput {
+  type: ManPathType
+  "Either center of a circle for the arc, or the vertex location"
+  vertex: ManPoint2DInput
+  "start point of arc in billionth of a rotation (range from 0 to 999999999)"
+  startAngle: Int
+  "end point of arc in billionth of a rotation (range from 0 to 999999999)"
+  endAngle: Int
+  "radius of the circle if an arc"
+  radius: Int
+}
+
+input ManPlacementInput {
+  "schematic refdes"
+  refdes: String
+  "Location of the part"
+  location: ManPoint2DInput
+  "Side of the board"
+  side: ManSide
+  "aabb of the part"
+  aabb: ManAABBInput
+}
+
+input ManPoint2DInput {
+  x: Int!
+  y: Int!
+}
+
+input ManPriceInput {
+  amount: Decimal
+}
+
+input ManPurchaseOptionInput {
+  supplier: String
+  inventory: Int
+  offers: [ManOfferInput]
+}
+
+input ManQuoteInput {
+  id: ID!
+  type: String
+  "the quote line items"
+  items: [ManQuoteInputItem]
+  "leadtime in business days"
+  leadtime: Int
+  "any parameter violation which invalidate the quote"
+  violations: [ManViolationInput]
+}
+
+input ManQuoteInputItem {
+  category: ManQuoteCategory
+  amount: Decimal
+  ident: String
+}
+
+input ManShippingDetailsInput {
+  name: String
+  email: String
+  phone: String
+  line1: String
+  line2: String
+  country: String
+  city: String
+  state: String
+  postal: String
+  method: ManShippingMethodInput
+}
+
+input ManShippingMethodInput {
+  carrier: String
+  service: String
+}
+
+input ManViolationInput {
+  "dot delimited string describing location of issue \nlayers.[1].process  "
+  field: String
+  type: ManViolationType
+  description: String
+}
+
+enum ManAccess {
+  ALLOW_MPN
+  IS_EMS
+  IS_CREATOR
+}
+
+enum ManCurrency {
+  USD
+}
+
+enum ManLayerType {
+  COVERLAY
+  SURFACE_FINISH
+  SIGNAL
+  PLANE
+  CORE
+  PRE_PREG
+  SOLDER_MASK
+  OVERLAY
+}
+
+enum ManMountingType {
+  THROUGH_HOLE
+  SURFACE_MOUNT
+}
+
+enum ManOrderEventType {
+  CREATED
+  ACCEPTED
+  EMS_ACCEPTED
+  PAID
+  TIME_ESTIMATION
+  REVIEWED
+  BATCHED
+  PARTS_ORDERED
+  PCBS_ORDERED
+  PARTS_RECEIVED
+  PCBS_RECEIVED
+  PROCESS_START
+  SHIPPED
+  RECEIVED
+  CANCEL
+}
+
+enum ManOrderStatus {
+  QUOTING
+  PAYMENT_PROCESSING
+  PLACED
+  PROCESSING
+  MANUFACTURING
+  SHIPPING
+  CANCELLED
+  COMPLETE
+}
+
+enum ManPartIssue {
+  BAD_LIFECYCLE
+  NO_SELECTION
+  UNAVAILABLE
+  NOT_FOUND
+  INSUFFICIENT_STOCK
+  STOCK_LOW
+}
+
+enum ManPartStatus {
+  GOOD
+  WARN
+  ISSUE
+}
+
+enum ManPathType {
+  ARC
+  VERTEX
+}
+
+enum ManQuoteCategory {
+  FABRICATION
+  ASSEMBLY
+  BOM
+  SHIPPING
+  NRE
+}
+
+enum ManShippingCarrier {
+  USPS
+  UPS
+}
+
+enum ManSide {
+  TOP
+  BOTTOM
+}
+
+enum ManSilkScreenColour {
+  YELLOW
+  RED
+  GREEN
+  BLUE
+  BLACK
+  WHITE
+}
+
+enum ManSolderMaskColour {
+  BLUE
+  RED
+  GREEN
+  LIGHT_GREEN
+  MATTE_GREEN
+  YELLOW
+  BLACK
+  MATTE_BLACK
+  WHITE
+  DARK_BROWN
+  TRANSPARENT
+}
+
+enum ManSourcing {
+  ALTIMADE
+  CONSIGN
+  DNP
+}
+
+enum ManViolationType {
+  INCONSISTENT
+  TOO_BIG
+  TOO_SMALL
+  UNKNOWN
+  UNSUPPORTED
+}
+
 "The name scalar represents a valid GraphQL name as specified in the spec and can be used to refer to fields or types."
 scalar Name
 
-"The `DateTime` scalar represents an ISO-8601 compliant date time type."
-scalar DateTime
-
 "The built-in `Decimal` scalar type."
 scalar Decimal
+
+"The `DateTime` scalar represents an ISO-8601 compliant date time type."
+scalar DateTime
 
 "Delegates a resolver to a remote schema."
 directive @delegate("The path to the field on the remote schema." path: String "The name of the schema to which this field shall be delegated to." schema: Name!) on FIELD_DEFINITION
@@ -1971,3 +2686,5 @@ directive @computed("Specifies the fields on which a computed field is dependent
 
 "Annotates the original name of a type."
 directive @source("The original name of the annotated type." name: Name! "The name of the schema to which this type belongs to." schema: Name!) repeatable on ENUM | OBJECT | INTERFACE | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE
+
+directive @auth(access: [ManAccess!]!) on FIELD_DEFINITION

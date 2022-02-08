@@ -5,10 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="StrawberryShake.CodeGeneration.CSharp.Analyzers" Version="12.2.1">
+    <PackageReference Include="StrawberryShake.CodeGeneration.CSharp.Analyzers" Version="12.6.0">
       <TreatAsUsed>true</TreatAsUsed>
     </PackageReference>
-    <PackageReference Include="StrawberryShake.Transport.Http" Version="12.2.1" />
+    <PackageReference Include="StrawberryShake.Transport.Http" Version="12.6.0" />
   </ItemGroup>
 
 </Project>
