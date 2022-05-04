@@ -14,25 +14,35 @@ namespace Nexar.Supply
         /// The identity server endpoint.
         /// </summary>
         public string Authority =>
-            NexarMode == Mode.Prod
-            ? "https://identity.nexar.com/"
-            : "https://identity.nexar.com/";
+            NexarMode switch
+            {
+                Mode.Prod => "https://identity.nexar.com/",
+                Mode.Dev => "https://identity.nexar.com/",
+                _ => "https://identity.nexar.com/",
+            };
 
         /// <summary>
         /// The Nexar GraphQL API endpoint.
         /// </summary>
         public string ApiEndpoint =>
-            NexarMode == Mode.Prod
-            ? "https://api.nexar.com/graphql"
-            : "https://api.nexar.com/graphql";
+            NexarMode switch
+            {
+                Mode.Prod => "https://api.nexar.com/graphql",
+                Mode.Dev => "https://api.nexar.com/graphql",
+                _ => "https://api.nexar.com/graphql",
+            };
+
 
         /// <summary>
         /// The Nexar home page.
         /// </summary>
         public string NexarDotCom =>
-            NexarMode == Mode.Prod
-            ? "https://nexar.com"
-            : "http://nexar.com";
+            NexarMode switch
+            {
+                Mode.Prod => "https://nexar.com",
+                Mode.Dev => "http://nexar.com",
+                _ => "http://nexar.com",
+            };
 
         /// <summary>
         /// The current session token.
@@ -58,5 +68,6 @@ namespace Nexar.Supply
     {
         Prod,
         Dev,
+        Uat
     }
 }

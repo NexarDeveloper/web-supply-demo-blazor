@@ -57,6 +57,7 @@ type Query {
   desManufacturePackages: [DesManufacturePackage!]!
   desManufacturePackageById(id: ID!): DesManufacturePackage
   desManufacturePackageCreationJob(id: ID!): DesManufacturePackageCreationJob
+  supOctopartIdFromCiivaId(workspaceUrl: String! ciivaId: String!): String
   "Get all attributes"
   supAttributes: [SupAttribute!]!
   "Get manufacturer companies"
@@ -85,6 +86,11 @@ type Query {
   manListProjectOrders(id: ID!): [ManOrder]
   manAltimadeLogin(gsid: ID): String
   manBomResolution(projectId: ID! quoteRequestId: ID!): ManBomResolution
+  manOrderEventById(id: ID!): ManOrderEvent
+  "Get details about the organization(s) the current user belongs to."
+  admOrganizations: [AdmOrganization!]!
+  "Gets a single application by its unique identifier."
+  admApplicationById(id: String!): AdmApplication
 }
 
 type Mutation {
@@ -95,6 +101,8 @@ type Mutation {
   desDeleteCommentThread(input: DesDeleteCommentThreadInput!): DesDeleteCommentThreadPayload!
   "Releases the specified component."
   desReleaseComponent(input: DesReleaseComponentInput!): DesReleaseComponentPayload!
+  "Updates parameters for the specified component (creates a new revision)."
+  desUpdateComponentRevisionParameters(input: DesUpdateComponentRevisionParametersInput!): DesUpdateComponentRevisionParametersPayload!
   "Creates a user."
   desCreateUser(input: DesCreateUserInput!): DesCreateUserPayload!
   "Deletes the specified user."
@@ -137,6 +145,7 @@ type Mutation {
   manInsertOrderPcbsReceivedEvent(input: ManOrderPcbsReceivedInput!): ManOrder
   manInsertOrderProcessStartEvent(input: ManOrderProcessStartInput!): ManOrder
   manInsertOrderShippedEvent(input: ManOrderShippedInput!): ManOrder
+  manInsertOrderConsignmentDetailsEvent(input: ManOrderConsignmentDetailsInput!): ManOrder
 }
 
 type Subscription {
@@ -463,6 +472,8 @@ type DesLayer {
   thickness: DesSize
   dielectricConstant: Decimal
   copperWeight: DesWeight
+  "Currently returns a static value of 0.666."
+  copperRatio: Decimal
   material: String
   nets: [DesNet!]!
   layerType: DesLayerType!
@@ -477,7 +488,7 @@ type DesLayerProperty {
 
 type DesLibrary {
   "Gets library components."
-  components("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesComponentConnection
+  components("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesComponentFilterInput): DesComponentConnection
 }
 
 "Revision naming scheme details obtained by `desLibrary\/lifeCycleDefinitions`."
@@ -894,6 +905,11 @@ type DesUpdateCommentPayload {
   errors: [DesPayloadError!]!
 }
 
+type DesUpdateComponentRevisionParametersPayload {
+  componentId: ID!
+  errors: [DesPayloadError!]!
+}
+
 type DesUpdateUserGroupPayload {
   errors: [DesPayloadError!]!
 }
@@ -904,6 +920,8 @@ type DesUpdateUserPayload {
 
 "User details with the identifier and nullable extra fields."
 type DesUser {
+  "Null if the user no longer exists."
+  pictureUrl(size: DesUserPictureSize): String
   "Null if the user no longer exists."
   groups: [DesUserGroup!]
   "The internal user ID."
@@ -1116,6 +1134,20 @@ input DesAddUsersToGroupInput {
   userIds: [String!]!
 }
 
+"A component contains the parametric details of a part attached the PCB."
+input DesComponentFilterInput {
+  and: [DesComponentFilterInput!]
+  or: [DesComponentFilterInput!]
+  "The library label for this component."
+  name: StringOperationFilterInput
+  "The additional information for this component."
+  comment: StringOperationFilterInput
+  "The summary of function or other performance details for this component."
+  description: StringOperationFilterInput
+  "The component revision."
+  revision: DesRevisionFilterInput
+}
+
 input DesCreateCommentInput {
   entityId: ID!
   commentThreadId: String!
@@ -1281,6 +1313,14 @@ input DesRemoveUsersFromGroupInput {
   userIds: [String!]!
 }
 
+"Revision details ID for later use or full details."
+input DesRevisionFilterInput {
+  and: [DesRevisionFilterInput!]
+  or: [DesRevisionFilterInput!]
+  "The revision details node ID for later use."
+  id: IdOperationFilterInput
+}
+
 input DesRevisionParameterInput {
   name: String!
   value: String!
@@ -1306,6 +1346,15 @@ input DesUpdateCommentInput {
   commentThreadId: String!
   commentId: String!
   text: String!
+}
+
+input DesUpdateComponentRevisionParametersInput {
+  componentId: ID!
+  componentRevisionNamingSchemeId: String
+  releaseNote: String
+  "Tells to replace all existing parameters. By default parameters are added to existing."
+  replaceExisting: Boolean
+  parameters: [DesRevisionParameterInput!]!
 }
 
 input DesUpdateUserGroupInput {
@@ -1400,6 +1449,13 @@ input DesWorkspaceFilterInput {
   description: StringOperationFilterInput
   "Tells if the workspace is the current user default."
   isDefault: BooleanOperationFilterInput
+}
+
+input IdOperationFilterInput {
+  eq: ID
+  neq: ID
+  in: [ID]
+  nin: [ID]
 }
 
 input ListFilterInputTypeOfDesSchematicFilterInput {
@@ -1543,6 +1599,13 @@ enum DesPrimitiveShape {
   ROUND
   RECTANGLE
   ROUNDED_RECTANGLE
+}
+
+enum DesUserPictureSize {
+  SIZE48X48
+  SIZE70X70
+  SIZE128X128
+  ORIGINAL
 }
 
 "Used to show the filters that are applied to current search."
@@ -2031,6 +2094,8 @@ enum SupSortDirection {
 }
 
 interface ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
@@ -2075,6 +2140,7 @@ type ManBoardMeta {
   projectId: String
   boardDetails: ManBoardDetails
   parts: [ManPart]
+  consignmentCount: Int!
   bomIssues: ManBomIssues!
   placementStats: ManPlacementInfo
   minClearance: ManLength
@@ -2089,6 +2155,11 @@ type ManBomIssues {
 
 type ManBomResolution {
   parts: [ManPart!]!
+}
+
+type ManConsignmentDocs {
+  pdf: String!
+  html: String!
 }
 
 type ManCreateAssemblyResponse {
@@ -2140,76 +2211,118 @@ type ManOrder {
 }
 
 type ManOrderAcceptedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderBatchedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderCancelEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
+type ManOrderConsignmentDetailsEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
+  eventType: ManOrderEventType!
+  timestamp: Int!
+  shipping: ManShippingDetails!
+  receiveBy: DateTime!
+  consignmentId: ID!
+  documents: ManConsignmentDocs!
+  parts: [ManPartQuantity!]!
+}
+
 type ManOrderCreatedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderEmsAcceptedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderPaidEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderPartsOrderedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderPartsReceivedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderPcbsOrderedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderPcbsReceivedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderProcessStartEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderReceivedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderReviewedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderShipEstimateEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
 }
 
 type ManOrderShippedEvent implements ManOrderEvent {
+  id: ID!
+  order: ManOrder!
   eventType: ManOrderEventType!
   timestamp: Int!
   trackingNumber: String!
@@ -2248,6 +2361,13 @@ type ManPartChoice {
   octopartId: String
   image: String
   octopartUrl: String
+}
+
+type ManPartQuantity {
+  reference: String!
+  quantity: Int!
+  linkedPart: ManPartChoice
+  placements: [ManPlacement!]!
 }
 
 type ManPathSegment {
@@ -2321,6 +2441,7 @@ type ManRapidQuoteRequest {
   meta: ManBoardMeta
   shipping: ManShippingDetails
   bomResolutionUrl: String
+  requestorId: ID
 }
 
 type ManRapidQuoteResponse {
@@ -2400,6 +2521,14 @@ input ManOrderBatchedInput {
   orderId: ID!
 }
 
+input ManOrderConsignmentDetailsInput {
+  orderId: ID!
+  shipping: ManShippingDetailsInput!
+  receiveBy: DateTime!
+  consignmentId: ID!
+  partQuantities: [ManPartQuantityInput!]!
+}
+
 input ManOrderEmsAcceptInput {
   orderId: ID!
   emsReference: String
@@ -2443,15 +2572,22 @@ input ManOrderShippedInput {
 input ManPartChoiceInput {
   mpn: String
   manufacturer: String
+  octopartId: String
   suppliers: [ManPurchaseOptionInput]
 }
 
 input ManPartInput {
   id: ID
+  componentId: ID
   type: ManMountingType
   pinCount: Int
   partChoices: [ManPartChoiceInput]
   placements: [ManPlacementInput]
+}
+
+input ManPartQuantityInput {
+  id: ID!
+  amount: Int!
 }
 
 input ManPartSelectionInput {
@@ -2571,6 +2707,7 @@ enum ManOrderEventType {
   ACCEPTED
   EMS_ACCEPTED
   PAID
+  CONSIGNMENT_DETAILS
   TIME_ESTIMATION
   REVIEWED
   BATCHED
@@ -2670,6 +2807,101 @@ enum ManViolationType {
   UNSUPPORTED
 }
 
+"An application belonging to an organization which facilitates access. Users interact with the Nexar API through applications."
+type AdmApplication {
+  "The scopes assigned to this application."
+  scopes: [AdmApplicationScope!]!
+  "Information about supply quota if this application has the supply scope."
+  supplyCounts: AdmSupplyCounts
+  "Security detail for this application, such as its client id and secret."
+  security: AdmApplicationSecurity!
+  "The organization to which this application belongs."
+  organizationId: String
+  "The name of this application."
+  name: String!
+  "The description of this application."
+  description: String
+  "Whether or not this application has been deleted."
+  deleted: Boolean!
+  "When this application was created."
+  createdDate: DateTime!
+  "A unique identifier for the application."
+  id: String
+}
+
+"A scope for an application, e.g. design, supply or manufacturing."
+type AdmApplicationScope {
+  "The application to which this scope applies."
+  applicationId: String!
+  "The scope to which the application has been granted access."
+  scope: String!
+}
+
+"Security access details for an application."
+type AdmApplicationSecurity {
+  "The application to which this scope applies."
+  applicationId: String!
+  "The unique client id for this application."
+  clientId: String!
+  "The unique client secret for this application. Guard this secret carefully!"
+  clientSecret: String!
+}
+
+"An Organization is an entity representing a partner, company or individual engaging with Nexar."
+type AdmOrganization {
+  "The users belonging to this organization."
+  users: [AdmUser!]!
+  "Invitations sent for others to join this organization."
+  invitations: [AdmUserInvitation!]!
+  "The applications belonging to this organization through which users interact with the API."
+  applications: [AdmApplication!]!
+  "Whether this is the current user's default organization."
+  isDefault: Boolean!
+  "The name of this organization."
+  name: String!
+  "When this organization was created."
+  createdDate: DateTime!
+  "A unique identifier for the organization."
+  id: String
+}
+
+"Supply count information for supply applications."
+type AdmSupplyCounts {
+  "The count of supply parts used this month."
+  partCounter: Int!
+  "The monthly quota of parts which can be returned through supply API queries."
+  partLimit: Int!
+}
+
+"A user represents and individual who can login to Nexar and interact with API through applications of this organization."
+type AdmUser {
+  "The email address for the user used as their username."
+  userName: String!
+  "The user's first name."
+  firstName: String!
+  "The user's last name."
+  lastName: String!
+  "When the user was created in the system."
+  createdDate: DateTime!
+  "A unique identifier for the user."
+  id: String
+}
+
+"An invitation sent for a user to join an invitation."
+type AdmUserInvitation {
+  "The organization to which the user has been invited."
+  organizationId: String
+  "The email of the user receiving the invitation to join the organization."
+  email: String
+  "Whether or not the user accepted the invitation to join the organization."
+  accepted: Boolean!
+}
+
+enum ApplyPolicy {
+  BEFORE_RESOLVER
+  AFTER_RESOLVER
+}
+
 "The name scalar represents a valid GraphQL name as specified in the spec and can be used to refer to fields or types."
 scalar Name
 
@@ -2678,6 +2910,8 @@ scalar Decimal
 
 "The `DateTime` scalar represents an ISO-8601 compliant date time type."
 scalar DateTime
+
+directive @authorize("The name of the authorization policy that determines access to the annotated resource." policy: String "Roles that are allowed to access the annotated resource." roles: [String!] "Defines when when the resolver shall be executed.By default the resolver is executed after the policy has determined that the current user is allowed to access the field." apply: ApplyPolicy! = BEFORE_RESOLVER) repeatable on SCHEMA | OBJECT | FIELD_DEFINITION
 
 "Delegates a resolver to a remote schema."
 directive @delegate("The path to the field on the remote schema." path: String "The name of the schema to which this field shall be delegated to." schema: Name!) on FIELD_DEFINITION
