@@ -103,6 +103,8 @@ type Mutation {
   desReleaseComponent(input: DesReleaseComponentInput!): DesReleaseComponentPayload!
   "Updates parameters for the specified component (creates a new revision)."
   desUpdateComponentRevisionParameters(input: DesUpdateComponentRevisionParametersInput!): DesUpdateComponentRevisionParametersPayload!
+  "Uploads the project zip file."
+  desUploadProject(input: DesUploadProjectInput!): DesUploadProjectPayload!
   "Creates a user."
   desCreateUser(input: DesCreateUserInput!): DesCreateUserPayload!
   "Deletes the specified user."
@@ -394,6 +396,8 @@ type DesDesignItem implements Node {
   "The planar boundary for this design item."
   area: DesRectangle
   footprintName: String!
+  "The rotation in degrees."
+  rotation: Decimal
   "The list of connection targets for this design item."
   pads: [DesPad!]!
   "The list of multiple layer connections for this design item."
@@ -472,7 +476,9 @@ type DesLayer {
   thickness: DesSize
   dielectricConstant: Decimal
   copperWeight: DesWeight
-  "Currently returns a static value of 0.666."
+  "The copper area."
+  copperArea: DesArea
+  "The ratio of copper area to PCB area."
   copperRatio: Decimal
   material: String
   nets: [DesNet!]!
@@ -584,6 +590,8 @@ type DesPayloadError {
 type DesPcb {
   "The details of the layer structure of this PCB."
   layerStack: DesStackup
+  "The outline of this PCB."
+  outline: DesPolygon!
   "The list of all part instances used in this PCB grouped into pages."
   designItems("An optional array of designators to search." designators: [String!] "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesDesignItemConnection
   "The list of all electrically connected regions in this PCB."
@@ -632,6 +640,10 @@ type DesPickAndPlace {
 
 type DesPin {
   name: String!
+}
+
+type DesPolygon {
+  vertices: [DesPosition2D!]!
 }
 
 type DesPosition2D {
@@ -915,6 +927,12 @@ type DesUpdateUserGroupPayload {
 }
 
 type DesUpdateUserPayload {
+  errors: [DesPayloadError!]!
+}
+
+type DesUploadProjectPayload {
+  "The project ID."
+  projectId: ID!
   errors: [DesPayloadError!]!
 }
 
@@ -1371,6 +1389,19 @@ input DesUpdateUserInput {
   lastName: String
 }
 
+input DesUploadProjectInput {
+  "The workspace URL."
+  workspaceUrl: String!
+  "The uploaded zip file ID."
+  fileId: String!
+  "The project name."
+  name: String!
+  "The project description."
+  description: String
+  "The project target folder path."
+  folderPath: String
+}
+
 "A variant contains a specific configuration of a base design."
 input DesWipVariantFilterInput {
   and: [DesWipVariantFilterInput!]
@@ -1694,6 +1725,8 @@ type SupCompany {
   name: String!
   "Aliases of company"
   aliases: [String!]!
+  "The country code for the display flag"
+  displayFlag: String
   "Homepage URL of company"
   homepageUrl: String
   "Used for URLs like `\/manufacturers\/aimtec` or `\/distributors\/digi-key`"
@@ -1770,6 +1803,8 @@ type SupOffer {
   id: ID!
   "Stock Keeping Unit used by internally by distributor"
   sku: String!
+  "The code indicating the region(s) for which offer is valid"
+  eligibleRegion: String
   "Number of units available to be shipped.  (aka Stock, Quantity)"
   inventoryLevel: Int!
   "Packaging of parts (eg Tape, Reel)"
@@ -1989,6 +2024,10 @@ type SupReferenceDesign {
 "Represents a specific value of an Attribute for a given Part"
 type SupSpec {
   attribute: SupAttribute!
+  "The actual value"
+  value: String!
+  "The units of the value"
+  units: String!
   "The formatted display value"
   displayValue: String!
 }
@@ -2826,7 +2865,7 @@ type AdmApplication {
   "When this application was created."
   createdDate: DateTime!
   "A unique identifier for the application."
-  id: String
+  id: String!
 }
 
 "A scope for an application, e.g. design, supply or manufacturing."
@@ -2862,7 +2901,7 @@ type AdmOrganization {
   "When this organization was created."
   createdDate: DateTime!
   "A unique identifier for the organization."
-  id: String
+  id: String!
 }
 
 "Supply count information for supply applications."
@@ -2884,7 +2923,7 @@ type AdmUser {
   "When the user was created in the system."
   createdDate: DateTime!
   "A unique identifier for the user."
-  id: String
+  id: String!
 }
 
 "An invitation sent for a user to join an invitation."
