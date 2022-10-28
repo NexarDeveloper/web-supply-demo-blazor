@@ -1,6 +1,7 @@
 @page "/sellers"
 @inherits AbstractPage
 @inject NexarClient Client
+@using Element = Nexar.Client.ISellers_SupSellers
 
 <MudContainer>
     <MudCard>
@@ -12,7 +13,11 @@
             }
             else
             {
-                <MudTable Items="@_sellers">
+                <MudTable Items="@_sellers" Filter="new Func<Element, bool>(FilterFunc1)">
+                    <ToolBarContent>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
+                    </ToolBarContent>
                     <HeaderContent>
                         <MudTh>ID</MudTh>
                         <MudTh>Name</MudTh>
@@ -33,7 +38,8 @@
 </MudContainer>
 
 @code {
-    IReadOnlyList<ISellers_SupSellers> _sellers;
+    string _searchString = string.Empty;
+    IReadOnlyList<Element> _sellers;
 
     protected override async Task OnInitializedAsync()
     {
@@ -48,5 +54,18 @@
         {
             await ShowErrorAsync(ex.Message);
         }
+    }
+
+    bool FilterFunc1(Element element) => FilterFunc(element, _searchString);
+
+    bool FilterFunc(Element element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.HomepageUrl.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 }
