@@ -53,11 +53,20 @@ type Query {
   "Search for a specific comment thread associated with a project."
   desCommentThread("The node identifier for a project (This is the project field named \"id\")." projectId: ID! "The reference identifier for a comment thread." threadId: String!): DesCommentThread
   desReleaseById(id: ID!): DesRelease
-  desBomById(id: ID!): DesBom
+  "Gets the BOM by its identifier."
+  desBomById("The BOM identifier." id: ID!): DesBom
   desManufacturePackages: [DesManufacturePackage!]!
   desManufacturePackageById(id: ID!): DesManufacturePackage
   desManufacturePackageCreationJob(id: ID!): DesManufacturePackageCreationJob
-  supOctopartIdFromCiivaId(workspaceUrl: String! ciivaId: String!): String
+  supOctopartIdFromCiivaId(workspaceUrl: String! ciivaId: String!): String @deprecated(reason: "Use `supPartIdFromCiivaId`.")
+  "Nexar infrastructure, subject to change."
+  supPartIdFromCiivaId(ciivaId: String!): String
+  "Nexar infrastructure, subject to change."
+  supPartIdsFromCiivaIds(ciivaIds: [String!]!): [String]!
+  "Nexar infrastructure, subject to change."
+  supCiivaIdFromPartId(partId: String!): String
+  "Nexar supply part data for internal use only."
+  supPartExtrasByPartId(partId: String!): SupPartExtras
   "Get all attributes"
   supAttributes: [SupAttribute!]!
   "Get manufacturer companies"
@@ -71,9 +80,9 @@ type Query {
   "Attempt to complete a partial query string.  Used for autosuggest \/ typeahead text inputs."
   supSuggest("partial query string" q: String! "categoryId to scope suggestions to" categoryId: String "only return part number suggestions" partNumbersOnly: Boolean): [SupSuggestion!]!
   "Search parts, including filters, pagination, aggregation, sorting"
-  supSearch("the query to search" q: String "user's country" country: String! = "US" "user's currency" currency: String! = "USD" "offset in the result set" start: Int "page size of results" limit: Int "field to sort by.  See [sort values](\/api\/v4\/values#sort)" sort: String "direction of sort: `asc` or `desc`" sortDir: SupSortDirection "filter to remove parts with no stocking distributors" inStockOnly: Boolean "a key: value map of filters. See [filter values](\/api\/v4\/values#filters)" filters: Map "fetch latest pricing and stock data from distributor API. Company.isDistributorApi indicates if a distributor supports this feature." distributorApi: Boolean "how long to wait for distributor API to respond as a duration string (e.g. `3s` or `500ms`)" distributorApiTimeout: String! = "3s" "if needed, pass along credentials for API integrations" customPricingCredentials: [SupApiCredentials!]): SupPartResultSet!
+  supSearch("the query to search" q: String "user's country" country: String! = "US" "user's currency" currency: String! = "USD" "offset in the result set" start: Int "page size of results" limit: Int "field to sort by.  See [sort values](https:\/\/octopart.com\/api\/v4\/values#sort)" sort: String "direction of sort: `asc` or `desc`" sortDir: SupSortDirection "filter to remove parts with no stocking distributors" inStockOnly: Boolean "a key: value map of filters. See [filter values](https:\/\/octopart.com\/api\/v4\/values#attributes)" filters: Map "fetch latest pricing and stock data from distributor API. Company.isDistributorApi indicates if a distributor supports this feature." distributorApi: Boolean "how long to wait for distributor API to respond as a duration string (e.g. `3s` or `500ms`)" distributorApiTimeout: String! = "3s" "if needed, pass along credentials for API integrations" customPricingCredentials: [SupApiCredentials!]): SupPartResultSet!
   "Search parts by mpn only, including filters, pagination, aggregation, sorting"
-  supSearchMpn("the query to search on mpn" q: String "user's country" country: String! = "US" "user's currency" currency: String! = "USD" "offset in the result set" start: Int "page size of results" limit: Int "field to sort by.  See [sort values](\/api\/v4\/values#sort)" sort: String "direction of sort: `asc` or `desc`" sortDir: SupSortDirection "filter to remove parts with no stocking distributors" inStockOnly: Boolean "a key: value map of filters. See [filter values](\/api\/v4\/values#filters)" filters: Map "fetch latest pricing and stock data from distributor API. Company.isDistributorApi indicates if a distributor supports this feature." distributorApi: Boolean "how long to wait for distributor API to respond as a duration string (e.g. `3s` or `500ms`)" distributorApiTimeout: String! = "3s" "if needed, pass along credentials for API integrations" customPricingCredentials: [SupApiCredentials!]): SupPartResultSet!
+  supSearchMpn("the query to search on mpn" q: String "user's country" country: String! = "US" "user's currency" currency: String! = "USD" "offset in the result set" start: Int "page size of results" limit: Int "field to sort by.  See [sort values](https:\/\/octopart.com\/api\/v4\/values#sort)" sort: String "direction of sort: `asc` or `desc`" sortDir: SupSortDirection "filter to remove parts with no stocking distributors" inStockOnly: Boolean "a key: value map of filters. See [filter values](https:\/\/octopart.com\/api\/v4\/values#attributes)" filters: Map "fetch latest pricing and stock data from distributor API. Company.isDistributorApi indicates if a distributor supports this feature." distributorApi: Boolean "how long to wait for distributor API to respond as a duration string (e.g. `3s` or `500ms`)" distributorApiTimeout: String! = "3s" "if needed, pass along credentials for API integrations" customPricingCredentials: [SupApiCredentials!]): SupPartResultSet!
   "Suggest an alternate `q` when no results are found"
   supSpellingCorrection("query string to correct" q: String!): [SupSpellingCorrection!]!
   "Match multiple manufacturer + mpn pairs at once.  Useful for when you have a list of parts, as with a BOM (Bill of Materials)"
@@ -91,6 +100,11 @@ type Query {
   admOrganizations: [AdmOrganization!]!
   "Gets a single application by its unique identifier."
   admApplicationById(id: String!): AdmApplication
+  datResolvedBomItems(input: DatUnresolvedBomItemsInput!): DatResolvedBomItemsPayload!
+  datBomAnalysis(input: DatBomAnalysisItemsInput!): DatBomAnalysisPayload!
+  datScrJob(jobId: String!): DatScrJob!
+  datScrJobs(jobIds: [String!]): [DatScrJob!]!
+  datScrReport(jobId: String!): DatScrReport!
 }
 
 type Mutation {
@@ -148,6 +162,8 @@ type Mutation {
   manInsertOrderProcessStartEvent(input: ManOrderProcessStartInput!): ManOrder
   manInsertOrderShippedEvent(input: ManOrderShippedInput!): ManOrder
   manInsertOrderConsignmentDetailsEvent(input: ManOrderConsignmentDetailsInput!): ManOrder
+  datScrCreateJob(input: DatScrCreateJobInput!): DatScrCreateJobPayload!
+  datScrDeleteJob(input: DatScrDeleteJobInput!): DatScrDeleteJobPayload!
 }
 
 type Subscription {
@@ -176,7 +192,9 @@ type DesAssemblyDrawings {
 }
 
 "A Bill of Materials (BOM) contains a list of all of the parts needed for the assembly of a PCB."
-type DesBom {
+type DesBom implements Node {
+  "The node identifier for this BOM (used by `desBomById`)."
+  id: ID!
   "The list of each unique part within the BOM."
   bomItems: [DesBomItem!]!
 }
@@ -203,12 +221,18 @@ type DesBomItemInstance {
 type DesComment {
   "The account information for who created this comment."
   createdBy: DesUser!
+  "The account information for who most recently modified this comment."
+  modifiedBy: DesUser!
   "The account information for those who are referenced for this comment."
   mentions: [DesMention!]!
   "The reference identifier for this comment (use with desDeleteComment)."
   commentId: String!
   "The content body of this comment."
   text: String!
+  "The `DateTime` for the creation of this comment."
+  createdAt: DateTime!
+  "The `DateTime` for the most recent modification of this comment."
+  modifiedAt: DateTime!
 }
 
 "A comment context provides additional information about associations for a comment thread."
@@ -403,7 +427,7 @@ type DesDesignItem implements Node {
   "The list of multiple layer connections for this design item."
   vias: [DesVia!]!
   "The list of conductor segments for this design item."
-  tracks: [DesTrack!]!
+  tracks(where: DesTrackFilterInput): [DesTrack!]!
 }
 
 "A connection to a list of items."
@@ -558,7 +582,7 @@ type DesNet {
   layers: [DesLayer!]!
   pads: [DesPad!]!
   vias: [DesVia!]!
-  tracks: [DesTrack!]!
+  tracks(where: DesTrackFilterInput): [DesTrack!]!
 }
 
 type DesOdb {
@@ -599,7 +623,7 @@ type DesPcb {
   "The list of all part connection targets in this PCB."
   pads: [DesPad!]!
   "The list of all conductor segments in this PCB."
-  tracks: [DesTrack!]!
+  tracks(where: DesTrackFilterInput): [DesTrack!]!
   "The list of all multiple layer connections in this PCB."
   vias: [DesVia!]!
   "The list of all comment threads related to this PCB."
@@ -1095,6 +1119,28 @@ type PageInfo {
   endCursor: String
 }
 
+type SupPartExtras {
+  alternatives(first: Int! = 100): [SupPartExtras!]!
+  partId: String!
+  description: String
+  isRohsCompliant: Boolean
+  datasheetUrls: [String!]
+  lifeCycle: SupPartLifeCycle!
+  parameters: [SupPartExtrasParameter!]
+  technicalDetails: [SupPartExtrasTechnicalDetail!]
+}
+
+type SupPartExtrasParameter {
+  name: String!
+  unit: String
+  value: [String!]
+}
+
+type SupPartExtrasTechnicalDetail {
+  name: String!
+  value: String!
+}
+
 input BooleanOperationFilterInput {
   eq: Boolean
   neq: Boolean
@@ -1182,12 +1228,20 @@ input DesCreateCommentThreadInput {
 }
 
 input DesCreateManufacturePackageInput {
+  "The ID of the project to create a manufacture package from."
   projectId: ID!
+  "The Git commit which determines the version of the project to use. If not provided, the latest version is used."
   vcsRevisionId: String
+  "The name for the package."
   name: String!
+  "A description for the package."
   description: String
+  "The email addresses of the manufacturers to share the package with."
   shareWith: [String!]!
+  "The project variant to use when creating the package. If not provided, the default variant is used."
   variantName: String
+  "A webhook URL that will receive a POST request when the manufacture package has been created and shared."
+  callbackUrl: String
 }
 
 input DesCreateUserGroupInput {
@@ -1233,6 +1287,12 @@ input DesLaunchWorkflowInput {
   variables: [DesWorkflowVariableInput!]!
   "The attachment variables."
   attachments: [DesWorkflowAttachmentVariableInput!]
+}
+
+input DesLayerFilterInput {
+  and: [DesLayerFilterInput!]
+  or: [DesLayerFilterInput!]
+  name: StringOperationFilterInput
 }
 
 input DesOnCommentUpdatedInput {
@@ -1357,6 +1417,12 @@ input DesSchematicFilterInput {
 input DesTerminateWorkflowsInput {
   workspaceUrl: String!
   workflowIds: [String!]!
+}
+
+input DesTrackFilterInput {
+  and: [DesTrackFilterInput!]
+  or: [DesTrackFilterInput!]
+  layer: DesLayerFilterInput
 }
 
 input DesUpdateCommentInput {
@@ -1639,6 +1705,19 @@ enum DesUserPictureSize {
   ORIGINAL
 }
 
+enum SupPartLifeCycle {
+  UNKNOWN
+  NEW
+  ACTIVE
+  NRFND
+  EOL
+  DISCONTINUED
+  ACTIVE_UNCONFIRMED
+  DISCONTINUED_UNCONFIRMED
+  CONTACT_MFR
+  TRANSFERRED
+}
+
 "Used to show the filters that are applied to current search."
 type SupAppliedFilter {
   "shortname is the key in the filters Map.  Usually an attribute shortname, or `manufacturerId`, `distributorId`, etc."
@@ -1661,6 +1740,12 @@ type SupAttribute {
   shortname: String!
   "use to group together similar attributes, e.g. Technical, Physical, Compliance"
   group: String!
+  "The type of the value"
+  valueType: String!
+  "The short name of the units"
+  unitsName: String!
+  "The symbol of the units"
+  unitsSymbol: String!
 }
 
 "Groups similar attributes together, as can be seen with column groups in specs view"
@@ -1893,6 +1978,8 @@ type SupPart {
   estimatedFactoryLeadDays: Int
   "This part might be known by these alternate MPNs"
   akaMpns: [String!]!
+  "Nexar supply part data for internal use only."
+  extras: SupPartExtras
 }
 
 type SupPartCad {
@@ -2026,8 +2113,16 @@ type SupSpec {
   attribute: SupAttribute!
   "The actual value"
   value: String!
+  "The value of the spec in SI base units"
+  siValue: String!
+  "The type of the value"
+  valueType: String!
   "The units of the value"
   units: String!
+  "The short name of the units"
+  unitsName: String!
+  "The symbol of the units"
+  unitsSymbol: String!
   "The formatted display value"
   displayValue: String!
 }
@@ -2039,10 +2134,22 @@ type SupSpecAgg {
   min: Float
   "max is the greatest spec value in this result set for numerical attributes"
   max: Float
+  "The min value in SI base units"
+  siMin: String
+  "The max value in SI base units"
+  siMax: String
   "displayMin is the formatted string of min"
   displayMin: String
   "displayMax is the formatted string of max"
   displayMax: String
+  "The type of the value"
+  valueType: String!
+  "The units of the spec"
+  units: String
+  "The short name of the units"
+  unitsName: String
+  "The symbol of the units"
+  unitsSymbol: String
 }
 
 type SupSpecBucket {
@@ -2099,7 +2206,7 @@ input SupPartMatchOptions {
   requireAuthorizedSellers: Boolean = false
   "If true, only parts with stock available will be returned."
   requireStockAvailable: Boolean = false
-  "a key: value map of filters. See [filter values](\/api\/v4\/values#filters)"
+  "a key: value map of filters. See [filter values](https:\/\/octopart.com\/api\/v4\/values#attributes)"
   filters: Map
 }
 
@@ -2936,6 +3043,192 @@ type AdmUserInvitation {
   accepted: Boolean!
 }
 
+type DatBomAnalysisResult {
+  level: DatBomAnalysisResultLevel!
+  message: String!
+  summary: String
+  bomItemIds: [String!]!
+}
+
+type DatBomAnalysisBomItem {
+  bomItemId: String!
+  partId: String
+  quantity: Int!
+}
+
+type DatBomAnalysisItems {
+  version: Int!
+  bomId: String!
+  bomItems: [DatBomAnalysisBomItem!]!
+}
+
+type DatBomAnalysisPayload {
+  version: Int!
+  bomId: String!
+  analysisResults: [DatBomAnalysisResult!]!
+}
+
+type DatManufacturer {
+  id: String!
+  name: String!
+}
+
+type DatResolvedBomItem {
+  bomItemId: String!
+  manufacturerParts: [DatResolvedBomPart!]!
+}
+
+type DatResolvedBomItemsPayload {
+  version: Int!
+  bomId: String!
+  bomItems: [DatResolvedBomItem!]!
+}
+
+type DatResolvedBomPart {
+  mpn: String!
+  partId: String!
+  confidence: Float!
+  manufacturer: DatManufacturer!
+}
+
+type DatScrCreateJobPayload {
+  jobId: String!
+  job: DatScrJob!
+}
+
+type DatScrDeleteJobPayload {
+  jobId: String!
+}
+
+type DatScrJob {
+  userId: String!
+  jobId: String!
+  label: String
+  uploadDatetime: DateTime!
+  jobState: DatScrJobState!
+  runStats: DatScrRunStats
+}
+
+type DatScrReport {
+  jobId: String!
+  downloadUrl: String!
+}
+
+type DatScrRunStats {
+  numTotalParts: Int
+  numResolvedParts: Int
+  numHpZeroParts: Int
+  numHpIntervalParts: Int
+  numHpOneParts: Int
+  numProcCurrent: Int
+  numProc7dAgo: Int
+  numProc14dAgo: Int
+  numProc21dAgo: Int
+  numProc28dAgo: Int
+  numRestocked: Int
+  numDestocked: Int
+}
+
+type DatUnresolvedBomItem {
+  bomItemId: String!
+  manufacturerName: String!
+  mpn: String!
+  ipn: String
+  description: String
+}
+
+type DatUnresolvedBomItems {
+  version: Int!
+  bomId: String!
+  bomItems: [DatUnresolvedBomItem!]!
+}
+
+input DatBomAnalysisBomItemInput {
+  bomItemId: String!
+  partId: String
+  quantity: Int!
+}
+
+input DatBomAnalysisItemsInput {
+  version: Int!
+  bomId: String!
+  bomItems: [DatBomAnalysisBomItemInput!]!
+}
+
+input DatManufacturerInput {
+  id: String!
+  name: String!
+}
+
+input DatResolvedBomItemInput {
+  bomItemId: String!
+  manufacturerParts: [DatResolvedBomPartInput!]!
+}
+
+input DatResolvedBomItemsPayloadInput {
+  version: Int!
+  bomId: String!
+  bomItems: [DatResolvedBomItemInput!]!
+}
+
+input DatResolvedBomPartInput {
+  mpn: String!
+  partId: String!
+  confidence: Float!
+  manufacturer: DatManufacturerInput!
+}
+
+input DatScrColumnMapInput {
+  pn: String
+  mpn: String
+  manufacturer: String
+  threshold: String
+  nexarPartId: String
+}
+
+input DatScrCreateJobInput {
+  fileId: String!
+  label: String
+  columnMapping: DatScrColumnMapInput
+}
+
+input DatScrDeleteJobInput {
+  jobId: String!
+}
+
+input DatUnresolvedBomFileInput {
+  version: Int!
+  bomId: String!
+  fileId: String!
+}
+
+input DatUnresolvedBomItemInput {
+  bomItemId: String!
+  manufacturerName: String!
+  mpn: String!
+  ipn: String
+  description: String
+}
+
+input DatUnresolvedBomItemsInput {
+  version: Int!
+  bomId: String!
+  bomItems: [DatUnresolvedBomItemInput!]!
+}
+
+enum DatBomAnalysisResultLevel {
+  ERROR
+  WARNING
+  SUGGESTION
+}
+
+enum DatScrJobState {
+  COMPLETED
+  FAILED
+  RUNNING
+  UNKNOWN
+}
+
 enum ApplyPolicy {
   BEFORE_RESOLVER
   AFTER_RESOLVER
@@ -2950,7 +3243,12 @@ scalar Decimal
 "The `DateTime` scalar represents an ISO-8601 compliant date time type."
 scalar DateTime
 
+"The multiplier path scalar represents a valid GraphQL multiplier path string."
+scalar MultiplierPath
+
 directive @authorize("The name of the authorization policy that determines access to the annotated resource." policy: String "Roles that are allowed to access the annotated resource." roles: [String!] "Defines when when the resolver shall be executed.By default the resolver is executed after the policy has determined that the current user is allowed to access the field." apply: ApplyPolicy! = BEFORE_RESOLVER) repeatable on SCHEMA | OBJECT | FIELD_DEFINITION
+
+directive @partId on FIELD_DEFINITION
 
 "Delegates a resolver to a remote schema."
 directive @delegate("The path to the field on the remote schema." path: String "The name of the schema to which this field shall be delegated to." schema: Name!) on FIELD_DEFINITION
@@ -2961,3 +3259,6 @@ directive @computed("Specifies the fields on which a computed field is dependent
 directive @source("The original name of the annotated type." name: Name! "The name of the schema to which this type belongs to." schema: Name!) repeatable on ENUM | OBJECT | INTERFACE | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE
 
 directive @auth(access: [ManAccess!]!) on FIELD_DEFINITION
+
+"The cost directives is used to express the complexity of a field."
+directive @cost("Defines the complexity of the field." complexity: Int! = 1 "Defines field arguments that act as complexity multipliers." multipliers: [MultiplierPath!] defaultMultiplier: Int) on FIELD_DEFINITION
