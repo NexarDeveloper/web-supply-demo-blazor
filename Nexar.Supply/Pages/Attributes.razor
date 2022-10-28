@@ -13,10 +13,10 @@
             }
             else
             {
-                <MudTable Items="@_attributes" Filter="new Func<Element, bool>(FilterFunc1)">
+                <MudTable Items="@_attributes" Filter="FilterElement">
                     <ToolBarContent>
                         <MudSpacer />
-                        <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
+                        <MudTextField @bind-Value="_filterString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
                     </ToolBarContent>
                     <HeaderContent>
                         <MudTh>ID</MudTh>
@@ -40,7 +40,7 @@
 </MudContainer>
 
 @code {
-    string _searchString = string.Empty;
+    string _filterString = string.Empty;
     IReadOnlyList<Element> _attributes;
 
     protected override async Task OnInitializedAsync()
@@ -58,15 +58,13 @@
         }
     }
 
-    bool FilterFunc1(Element element) => FilterFunc(element, _searchString);
-
-    bool FilterFunc(Element element, string searchString)
+    bool FilterElement(Element element)
     {
-        if (string.IsNullOrWhiteSpace(searchString))
+        if (string.IsNullOrWhiteSpace(_filterString))
             return true;
-        if (element.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+        if (element.Name.Contains(_filterString, StringComparison.OrdinalIgnoreCase))
             return true;
-        if (element.Shortname.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+        if (element.Shortname.Contains(_filterString, StringComparison.OrdinalIgnoreCase))
             return true;
         return false;
     }
