@@ -29,7 +29,6 @@ type Query {
   desRevisionNamingSchemes(workspaceUrl: String!): [DesRevisionNamingScheme!]!
   "Gets the first allowed naming scheme by the content kind."
   desRevisionNamingSchemeByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesRevisionNamingScheme!
-  desSharedWithMe: DesSharedWithMe!
   "Gets the specified workspace team."
   desTeam(workspaceUrl: String!): DesTeam!
   "Gets the specified workspace users by IDs."
@@ -58,6 +57,15 @@ type Query {
   desManufacturePackages: [DesManufacturePackage!]!
   desManufacturePackageById(id: ID!): DesManufacturePackage
   desManufacturePackageCreationJob(id: ID!): DesManufacturePackageCreationJob
+  "Find a specific reuse block by its unique identifier."
+  desReuseBlockById("The node identifier for a reuse block." id: ID!): DesReuseBlock
+  "Find a specific reuse block revision by its unique identifier."
+  desReuseBlockRevisionById("The node identifier for a reuse block revision." id: ID!): DesReuseBlockRevision
+  "The list of project tasks."
+  desProjectTasks(projectId: ID! "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesTaskConnection
+  "The list of workspace tasks."
+  desWorkspaceTasks(workspaceUrl: String! "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesTaskConnection
+  desSharedWithMe: DesSharedWithMe!
   supOctopartIdFromCiivaId(workspaceUrl: String! ciivaId: String!): String @deprecated(reason: "Use `supPartIdFromCiivaId`.")
   "Nexar infrastructure, subject to change."
   supPartIdFromCiivaId(ciivaId: String!): String
@@ -102,9 +110,15 @@ type Query {
   admApplicationById(id: String!): AdmApplication
   datResolvedBomItems(input: DatUnresolvedBomItemsInput!): DatResolvedBomItemsPayload!
   datBomAnalysis(input: DatBomAnalysisItemsInput!): DatBomAnalysisPayload!
+  datBomPart(item: DatBomItemInput!): DatBomPartsResult!
+  datBomParts(items: [DatBomItemInput!]!): [DatBomPartsResult!]!
+  datBomPartHistories(partIds: [String!]!): [DatBomPartHistory]!
+  datBomAnalyses(items: [DatBomPartItemInput!]!): [DatBomAnalysis!]!
   datScrJob(jobId: String!): DatScrJob!
   datScrJobs(jobIds: [String!]): [DatScrJob!]!
   datScrReport(jobId: String!): DatScrReport!
+  datScrUsage: DatScrUsage!
+  datEddiLatestEdition: DatEddiEdition!
 }
 
 type Mutation {
@@ -119,6 +133,8 @@ type Mutation {
   desUpdateComponentRevisionParameters(input: DesUpdateComponentRevisionParametersInput!): DesUpdateComponentRevisionParametersPayload!
   "Uploads the project zip file."
   desUploadProject(input: DesUploadProjectInput!): DesUploadProjectPayload!
+  "Updates a specific result block."
+  desUpdateReuseBlock(input: DesUpdateReuseBlockInput!): DesUpdateReuseBlockPayload!
   "Creates a user."
   desCreateUser(input: DesCreateUserInput!): DesCreateUserPayload!
   "Deletes the specified user."
@@ -201,7 +217,7 @@ type DesBom implements Node {
 
 "A Bill of Materials (BOM) item contains usage information for a unique component on the PCB."
 type DesBomItem {
-  "The detailed component infomation for this BOM item."
+  "The detailed component information for this BOM item."
   component: DesComponent
   "The total number of times this item is used."
   quantity: Decimal!
@@ -209,7 +225,7 @@ type DesBomItem {
   bomItemInstances: [DesBomItemInstance!]!
 }
 
-"A Bill of Materials (BOM) item instance contains infomation for one specific use case of the item."
+"A Bill of Materials (BOM) item instance contains information for one specific use case of the item."
 type DesBomItemInstance {
   "The unique label for this item."
   designator: String!
@@ -276,7 +292,7 @@ type DesCommentThread {
   modifiedBy: DesUser!
   "The list of replies associated with this comment thread."
   comments: [DesComment!]!
-  "The reference identifier for this comment thread (used by `desCreateComment` and `desDeleteComment`)."
+  "The reference identifier for this comment thread (used by `desCreateComment`, `desDeleteComment`, `desUpdateComment`)."
   commentThreadId: String!
   status: Int!
   "The `DateTime` for the creation of this comment thread."
@@ -291,7 +307,7 @@ type DesCommentThread {
   context: DesCommentContext!
 }
 
-"A component contains the parametric details of a part attached the PCB."
+"A component contains the parametric details of a PCB part."
 type DesComponent implements Node {
   "The node identifier for this component (used by `desComponentById`)."
   id: ID!
@@ -403,7 +419,7 @@ type DesDesignExchange {
 type DesDesignItem implements Node {
   "The node identifier for this project (used by `DesDesignItemById`)."
   id: ID!
-  "The detailed component infomation for this design item."
+  "The detailed component information for this design item."
   component: DesComponent
   "The list of all comment threads related to this design item."
   commentThreads: [DesCommentThread!]
@@ -461,10 +477,10 @@ type DesFolder {
 }
 
 type DesFootprint {
+  pins: [DesPin!]! @deprecated(reason: "Not implemented and may be removed.")
   imageFullSizeUrl: String!
   imageThumbnailUrl: String!
   dataDownloadUrl: String!
-  pins: [DesPin!]!
   folder: DesFolder
   guid: String!
   name: String!
@@ -519,6 +535,8 @@ type DesLayerProperty {
 type DesLibrary {
   "Gets library components."
   components("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesComponentFilterInput): DesComponentConnection
+  "Gets library reuse blocks."
+  reuseBlocks("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesReuseBlockConnection
 }
 
 "Revision naming scheme details obtained by `desLibrary\/lifeCycleDefinitions`."
@@ -634,7 +652,7 @@ type DesPcb {
   size: DesSize2D!
   "The total area contained by the PCB outline."
   area: DesArea!
-  "The location of the coordinate system origin relative to ???."
+  "The location of the coordinate system origin."
   origin: DesPosition2D!
 }
 
@@ -664,6 +682,9 @@ type DesPickAndPlace {
 
 type DesPin {
   name: String!
+  description: String!
+  designator: String!
+  electricalType: DesPinElectricalType!
 }
 
 type DesPolygon {
@@ -695,6 +716,8 @@ type DesProject implements Node {
   workflows("An option to search workflows that have been completed." isClosed: Boolean! = false "An option to search workflows that have been modified after a specific `DateTime`." modifiedAfter: DateTime where: DesWorkflowFilterInput): [DesWorkflow!]
   "The Altium 365 web address."
   url: String!
+  "The Altium 365 workspace URL."
+  workspaceUrl: String!
   "The reference identifier for this project."
   projectId: String!
   "The assigned name for this project."
@@ -707,6 +730,8 @@ type DesProject implements Node {
   updatedAt: DateTime
   "The detailed design information for this project."
   design: DesDesign!
+  "The list of project tasks. For a particular project consider using the more effective query `desProjectTasks`."
+  tasks: [DesTask!]
 }
 
 "A connection to a list of items."
@@ -798,6 +823,44 @@ type DesReleaseVariant {
 
 type DesRemoveUsersFromGroupPayload {
   errors: [DesPayloadError!]!
+}
+
+type DesReuseBlock implements Node {
+  latestRevision: DesReuseBlockRevision!
+  revisions: [DesReuseBlockRevision!]!
+  "The node identifier for this reuse block (used by `desReuseBlockById`)."
+  id: ID!
+  name: String!
+  description: String!
+}
+
+"A connection to a list of items."
+type DesReuseBlockConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [DesReuseBlockEdge!]
+  "A flattened list of the nodes."
+  nodes: [DesReuseBlock!]
+  totalCount: Int!
+}
+
+"An edge in a connection."
+type DesReuseBlockEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: DesReuseBlock!
+}
+
+type DesReuseBlockRevision implements Node {
+  pcbSnippet: DesDownloadableFile!
+  schematicSnippet: DesDownloadableFile!
+  "The node identifier for this reuse block (used by `desReuseBlockRevisionById`)."
+  id: ID!
+  name: String!
+  comment: String!
+  description: String!
 }
 
 "Revision details ID for later use or full details."
@@ -898,15 +961,45 @@ type DesSupplierStock {
 }
 
 type DesSymbol {
+  "The list of pins."
+  pins: [DesPin!]!
   imageFullSizeUrl: String!
   imageThumbnailUrl: String!
   dataDownloadUrl: String!
-  pins: [DesPin!]!
   folder: DesFolder
   guid: String!
   name: String!
   comment: String!
   description: String!
+}
+
+type DesTask implements Node {
+  "The node identifier."
+  id: ID!
+  refId: String!
+  name: String!
+  description: String!
+  priority: DesTaskPriority!
+  status: DesTaskStatus!
+}
+
+"A connection to a list of items."
+type DesTaskConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [DesTaskEdge!]
+  "A flattened list of the nodes."
+  nodes: [DesTask!]
+  totalCount: Int!
+}
+
+"An edge in a connection."
+type DesTaskEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: DesTask!
 }
 
 type DesTeam {
@@ -943,6 +1036,10 @@ type DesUpdateCommentPayload {
 
 type DesUpdateComponentRevisionParametersPayload {
   componentId: ID!
+  errors: [DesPayloadError!]!
+}
+
+type DesUpdateReuseBlockPayload {
   errors: [DesPayloadError!]!
 }
 
@@ -1096,6 +1193,8 @@ type DesWorkspace implements Node {
   description: String
   "Tells if the workspace is the current user default."
   isDefault: Boolean!
+  "The list of workspace tasks. For a particular workspace consider using the more effective query `desWorkspaceTasks`."
+  tasks: [DesTask!]
 }
 
 type DesWorkspaceLocation {
@@ -1119,11 +1218,13 @@ type PageInfo {
   endCursor: String
 }
 
+"Nexar supply part data for internal use only."
 type SupPartExtras {
   alternatives(first: Int! = 100): [SupPartExtras!]!
   partId: String!
   description: String
   isRohsCompliant: Boolean
+  confidence: Float
   datasheetUrls: [String!]
   lifeCycle: SupPartLifeCycle!
   parameters: [SupPartExtrasParameter!]
@@ -1198,7 +1299,7 @@ input DesAddUsersToGroupInput {
   userIds: [String!]!
 }
 
-"A component contains the parametric details of a part attached the PCB."
+"A component contains the parametric details of a PCB part."
 input DesComponentFilterInput {
   and: [DesComponentFilterInput!]
   or: [DesComponentFilterInput!]
@@ -1311,6 +1412,8 @@ input DesProjectFilterInput {
   or: [DesProjectFilterInput!]
   "The Altium 365 web address."
   url: StringOperationFilterInput
+  "The Altium 365 workspace URL."
+  workspaceUrl: StringOperationFilterInput
   "The reference identifier for this project."
   projectId: StringOperationFilterInput
   "The assigned name for this project."
@@ -1439,6 +1542,12 @@ input DesUpdateComponentRevisionParametersInput {
   "Tells to replace all existing parameters. By default parameters are added to existing."
   replaceExisting: Boolean
   parameters: [DesRevisionParameterInput!]!
+}
+
+input DesUpdateReuseBlockInput {
+  id: ID!
+  name: String
+  description: String
 }
 
 input DesUpdateUserGroupInput {
@@ -1692,10 +1801,36 @@ enum DesParameterType {
   TIME
 }
 
+enum DesPinElectricalType {
+  INPUT
+  IO
+  OUTPUT
+  OPEN_COLLECTOR
+  PASSIVE
+  HI_Z
+  OPEN_EMITTER
+  POWER
+}
+
 enum DesPrimitiveShape {
   ROUND
   RECTANGLE
   ROUNDED_RECTANGLE
+}
+
+enum DesTaskPriority {
+  UNDEFINED
+  LOW
+  MEDIUM
+  HIGH
+  HIGHEST
+}
+
+enum DesTaskStatus {
+  UNDEFINED
+  TO_DO
+  IN_PROGRESS
+  RESOLVED
 }
 
 enum DesUserPictureSize {
@@ -2221,6 +2356,18 @@ input SupPartMatchQuery {
   reference: String
 }
 
+enum SupNexarFeatureID {
+  LEAD_TIME
+  LIFECYCLE
+  DATASHEETS
+  TECH_SPECS
+  CAD_MODELS
+  SIMILAR_PARTS
+  SUGGESTIONS
+  SPELLING_CORRECTIONS
+  INVENTORY_HISTORY
+}
+
 enum SupPlanTier {
   FREE
   BASIC
@@ -2232,6 +2379,7 @@ enum SupRole {
   DISTRIBUTOR
   CADMODELS
   INTERNAL
+  NEXARINTERNAL
 }
 
 enum SupSortDirection {
@@ -3050,6 +3198,12 @@ type DatBomAnalysisResult {
   bomItemIds: [String!]!
 }
 
+type DatBomAnalysis {
+  items: [DatBomPartItem!]!
+  level: DatBomAnalysisLevel!
+  message: String!
+}
+
 type DatBomAnalysisBomItem {
   bomItemId: String!
   partId: String
@@ -3066,6 +3220,51 @@ type DatBomAnalysisPayload {
   version: Int!
   bomId: String!
   analysisResults: [DatBomAnalysisResult!]!
+}
+
+type DatBomPart {
+  partId: String!
+  confidence: Float!
+  strategy: DatBomPartSearchStrategy!
+}
+
+type DatBomPartHistory {
+  threeMonthGrowthPercentage: Float!
+}
+
+type DatBomPartItem {
+  itemRefId: String
+  partId: String!
+  quantity: Int!
+}
+
+type DatBomPartsResult {
+  itemRefId: String
+  parts: [DatBomPart!]!
+}
+
+type DatEddiCategory {
+  id: Int!
+  name: String!
+}
+
+type DatEddiEdition {
+  eddiTimeSeries(where: DatEddiTimeSeriesFilterInput): [DatEddiTimeSeries!]!
+  id: Int!
+  title: String!
+  releaseDate: DateTime!
+}
+
+type DatEddiIndex {
+  indexDate: DateTime!
+  supplyIndex: Float
+  demandIndex: Float
+}
+
+type DatEddiTimeSeries {
+  children(where: DatEddiTimeSeriesFilterInput): [DatEddiTimeSeries!]
+  indices(where: DatEddiIndexFilterInput): [DatEddiIndex!]!
+  category: DatEddiCategory
 }
 
 type DatManufacturer {
@@ -3106,6 +3305,7 @@ type DatScrJob {
   label: String
   uploadDatetime: DateTime!
   jobState: DatScrJobState!
+  jobMessage: String
   runStats: DatScrRunStats
 }
 
@@ -3129,6 +3329,12 @@ type DatScrRunStats {
   numDestocked: Int
 }
 
+type DatScrUsage {
+  countDistinctParts: Int!
+  fromDate: String!
+  quota: Int!
+}
+
 type DatUnresolvedBomItem {
   bomItemId: String!
   manufacturerName: String!
@@ -3143,6 +3349,21 @@ type DatUnresolvedBomItems {
   bomItems: [DatUnresolvedBomItem!]!
 }
 
+input ComparableNullableOfDoubleOperationFilterInput {
+  eq: Float
+  neq: Float
+  in: [Float]
+  nin: [Float]
+  gt: Float
+  ngt: Float
+  gte: Float
+  ngte: Float
+  lt: Float
+  nlt: Float
+  lte: Float
+  nlte: Float
+}
+
 input DatBomAnalysisBomItemInput {
   bomItemId: String!
   partId: String
@@ -3153,6 +3374,39 @@ input DatBomAnalysisItemsInput {
   version: Int!
   bomId: String!
   bomItems: [DatBomAnalysisBomItemInput!]!
+}
+
+input DatBomItemInput {
+  itemRefId: String
+  manufacturerName: String
+  mpn: String
+}
+
+input DatBomPartItemInput {
+  itemRefId: String
+  partId: String!
+  quantity: Int!
+}
+
+input DatEddiCategoryFilterInput {
+  and: [DatEddiCategoryFilterInput!]
+  or: [DatEddiCategoryFilterInput!]
+  id: ComparableInt32OperationFilterInput
+  name: StringOperationFilterInput
+}
+
+input DatEddiIndexFilterInput {
+  and: [DatEddiIndexFilterInput!]
+  or: [DatEddiIndexFilterInput!]
+  indexDate: ComparableDateTimeOperationFilterInput
+  supplyIndex: ComparableNullableOfDoubleOperationFilterInput
+  demandIndex: ComparableNullableOfDoubleOperationFilterInput
+}
+
+input DatEddiTimeSeriesFilterInput {
+  and: [DatEddiTimeSeriesFilterInput!]
+  or: [DatEddiTimeSeriesFilterInput!]
+  category: DatEddiCategoryFilterInput
 }
 
 input DatManufacturerInput {
@@ -3183,7 +3437,6 @@ input DatScrColumnMapInput {
   mpn: String
   manufacturer: String
   threshold: String
-  nexarPartId: String
 }
 
 input DatScrCreateJobInput {
@@ -3216,10 +3469,22 @@ input DatUnresolvedBomItemsInput {
   bomItems: [DatUnresolvedBomItemInput!]!
 }
 
+enum DatBomAnalysisLevel {
+  ERROR
+  WARNING
+  SUGGESTION
+}
+
 enum DatBomAnalysisResultLevel {
   ERROR
   WARNING
   SUGGESTION
+}
+
+enum DatBomPartSearchStrategy {
+  EXACT
+  PARTIAL
+  FUZZY
 }
 
 enum DatScrJobState {
@@ -3257,6 +3522,18 @@ directive @computed("Specifies the fields on which a computed field is dependent
 
 "Annotates the original name of a type."
 directive @source("The original name of the annotated type." name: Name! "The name of the schema to which this type belongs to." schema: Name!) repeatable on ENUM | OBJECT | INTERFACE | UNION | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE
+
+directive @BlockAll(roles: [SupRole!]!) on FIELD_DEFINITION
+
+directive @Expensive on FIELD_DEFINITION
+
+directive @HasPlanTier(tier: SupPlanTier!) on FIELD_DEFINITION
+
+directive @NexarEnterprise(feature: SupNexarFeatureID!) on FIELD_DEFINITION
+
+directive @NexarRequire(feature: SupNexarFeatureID!) on FIELD_DEFINITION
+
+directive @RequireAny(roles: [SupRole!]!) on FIELD_DEFINITION
 
 directive @auth(access: [ManAccess!]!) on FIELD_DEFINITION
 

@@ -5,7 +5,8 @@
     "strawberryShake": {
       "name": "NexarClient",
       "namespace": "Nexar.Client",
-      "url": "https://api.nexar.com/graphql/"
+      "url": "https://api.nexar.com/graphql/",
+      "emitGeneratedCode": false
     }
   }
 }

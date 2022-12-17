@@ -31,8 +31,8 @@ After that the following page links are shown in the navigation menu:
 The app is built with [Blazor] using [MudBlazor] components.
 
 The Supply domain data are provided by Nexar API: <https://api.nexar.com/graphql>.
-This is the GraphQL endpoint for queries and also the Banana Cake Pop GraphQL IDE in browsers.
+This is the endpoint for GraphQL queries and also "Banana Cake Pop", the GraphQL IDE.
 
-The [HotChocolate StrawberryShake](https://github.com/ChilliCream/hotchocolate) package
+The package [HotChocolate StrawberryShake](https://github.com/ChilliCream/hotchocolate)
 is used for generating strongly typed C# client code for invoking GraphQL queries.
 See the source queries in [Resources](Nexar.Client/Resources).
