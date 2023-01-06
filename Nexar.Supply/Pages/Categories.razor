@@ -2,25 +2,23 @@
 @inherits AbstractPage
 @inject NexarClient Client
 
-<MudContainer>
-    <MudCard>
-        <MudCardContent>
-            <MudText Typo="Typo.h4" GutterBottom="true">Categories</MudText>
-            @if (_treeItems == null)
-            {
-                <MudProgressCircular Indeterminate="true" />
-            }
-            else
-            {
-                <MudTreeView Items="_treeItems">
-                    <ItemTemplate>
-                        <MudTreeViewItem Items="@context.Items" Value="@context" Text="@context.Tag.Name" />
-                    </ItemTemplate>
-                </MudTreeView>
-            }
-        </MudCardContent>
-    </MudCard>
-</MudContainer>
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h4" GutterBottom="true">Categories</MudText>
+        @if (_treeItems == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudTreeView Items="_treeItems">
+                <ItemTemplate>
+                    <MudTreeViewItem Items="@context.Items" Value="@context" Text="@context.Tag.Name" />
+                </ItemTemplate>
+            </MudTreeView>
+        }
+    </MudCardContent>
+</MudCard>
 
 @code {
     public class CategoryItem

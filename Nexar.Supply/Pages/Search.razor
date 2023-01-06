@@ -2,75 +2,73 @@
 @inherits AbstractPage
 @inject NexarClient Client
 
-<MudContainer>
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h4" GutterBottom="true">Search</MudText>
+        <MudAutocomplete T="string" Label="Query"
+                         TextChanged="QueryChanged" SearchFunc="@AutocompleteAsync"
+                         ResetValueOnEmptyText="true" Dense="true" CoerceText="false" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Color="Color.Primary" OnClick="@SearchAsync">Search</MudButton>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+    </MudCardActions>
+</MudCard>
+
+@if (_manufacturers != null && _manufacturers.Count > 0)
+{
     <MudCard>
         <MudCardContent>
-            <MudText Typo="Typo.h4" GutterBottom="true">Search</MudText>
-            <MudAutocomplete T="string" Label="Query"
-                             TextChanged="QueryChanged" SearchFunc="@AutocompleteAsync"
-                             ResetValueOnEmptyText="true" Dense="true" CoerceText="false" />
+            <MudTable Items="@_manufacturers">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Manufacturers</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Count</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.Id</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Count">@context.Count</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
         </MudCardContent>
-        <MudCardActions>
-            <MudButton Color="Color.Primary" OnClick="@SearchAsync">Search</MudButton>
-            @if (_loading)
-            {
-                <MudProgressCircular Indeterminate="true" />
-            }
-        </MudCardActions>
     </MudCard>
+}
 
-    @if (_manufacturers != null && _manufacturers.Count > 0)
-    {
-        <MudCard>
-            <MudCardContent>
-                <MudTable Items="@_manufacturers">
-                    <ToolBarContent>
-                        <MudText Typo="Typo.h6">Manufacturers</MudText>
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>ID</MudTh>
-                        <MudTh>Name</MudTh>
-                        <MudTh>Count</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="ID">@context.Id</MudTd>
-                        <MudTd DataLabel="Name">@context.Name</MudTd>
-                        <MudTd DataLabel="Count">@context.Count</MudTd>
-                    </RowTemplate>
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-                </MudTable>
-            </MudCardContent>
-        </MudCard>
-    }
-
-    @if (_parts != null && _parts.Count > 0)
-    {
-        <MudCard>
-            <MudCardContent>
-                <MudTable Items="@_parts">
-                    <ToolBarContent>
-                        <MudText Typo="Typo.h6">Parts</MudText>
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>ID</MudTh>
-                        <MudTh>Mpn</MudTh>
-                        <MudTh>Manufacturer</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="ID">@context.Id</MudTd>
-                        <MudTd DataLabel="Mpn">@context.Mpn</MudTd>
-                        <MudTd DataLabel="Manufacturer">@context.Manufacturer</MudTd>
-                    </RowTemplate>
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-                </MudTable>
-            </MudCardContent>
-        </MudCard>
-    }
-</MudContainer>
+@if (_parts != null && _parts.Count > 0)
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTable Items="@_parts">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Parts</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Mpn</MudTh>
+                    <MudTh>Manufacturer</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.Id</MudTd>
+                    <MudTd DataLabel="Mpn">@context.Mpn</MudTd>
+                    <MudTd DataLabel="Manufacturer">@context.Manufacturer</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+}
 
 @code {
     string _query;

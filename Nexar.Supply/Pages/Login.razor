@@ -1,35 +1,35 @@
 ﻿@page "/"
 @inherits AbstractPage
 @using System.Net.Http
-@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
-@using Microsoft.AspNetCore.WebUtilities
 @using Nexar.Client.Token
 
-<MudContainer>
-    <MudText>Demo Blazor app powered by <MudLink Href="@AppData.ApiEndpoint" Target="_blank">@AppData.ApiEndpoint</MudLink></MudText>
-    <MudForm>
-        <MudCard>
-            <MudCardContent>
-                <MudText Typo="Typo.h4" GutterBottom="true">Sign In</MudText>
-                <MudText>Don't have an account? <MudLink Href="@AppData.NexarDotCom" Target="_blank">Sign Up</MudLink></MudText>
+<MudText>Blazor app powered by <MudLink Href=@AppData.ApiEndpoint Target="_blank">@AppData.ApiEndpoint</MudLink></MudText>
+<MudForm>
+    <MudCard>
+        <MudCardContent>
+            <MudText Typo="Typo.h4" GutterBottom="true">Sign In</MudText>
+            <MudText>Don't have an account? <MudLink Href="@AppData.NexarDotCom" Target="_blank">Sign Up</MudLink></MudText>
 
-                <MudTextField @bind-Value="@_clientId" Label="Client ID" Placeholder="Client ID"
-                              Variant="Variant.Outlined" id="username" name="username"></MudTextField>
-                <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret"
-                              Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
-                @if (_loading)
-                {
-                    <MudProgressCircular Indeterminate="true" />
-                }
-            </MudCardActions>
-        </MudCard>
-    </MudForm>
-</MudContainer>
+            <MudTextField @bind-Value="@_clientId" Label="Client ID" Placeholder="Client ID"
+                          Variant="Variant.Outlined" id="username" name="username"></MudTextField>
+            <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret"
+                          Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
+            @if (_loading)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+        </MudCardActions>
+    </MudCard>
+</MudForm>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "token")]
+    public string TokenParameter { get; set; }
+
     string _clientId;
     string _clientSecret;
     bool _loading;
@@ -69,23 +69,14 @@
         if (AppData.Token != null)
             return;
 
-        var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
         try
         {
-            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("mode", out var mode))
-            {
-                if (Enum.TryParse(mode, true, out Mode value))
-                    AppData.NexarMode = value;
-                else
-                    throw new Exception($"Invalid mode.");
-            }
-
-            if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("token", out var token))
+            if (TokenParameter is not null)
             {
                 try
                 {
                     var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-                    var jwtSecurityToken = tokenHandler.ReadJwtToken(token);
+                    var jwtSecurityToken = tokenHandler.ReadJwtToken(TokenParameter);
                     if (jwtSecurityToken.ValidTo < DateTime.UtcNow.AddSeconds(10))
                         throw new Exception("Expired");
                 }
@@ -94,7 +85,7 @@
                     throw new Exception("Invalid or expired token.");
                 }
 
-                AppData.Token = token;
+                AppData.Token = TokenParameter;
                 NavManager.NavigateTo("search");
             }
         }

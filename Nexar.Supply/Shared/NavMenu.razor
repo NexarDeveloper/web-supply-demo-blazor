@@ -1,14 +1,13 @@
-﻿@inject AppData AppData
-
+﻿
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Filled.Login">Sign In</MudNavLink>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Login">Sign In</MudNavLink>
     @if (AppData.Token != null)
     {
-        <MudNavLink Href="/search" Match="NavLinkMatch.All" Icon="@Icons.Filled.Search">Search</MudNavLink>
-        <MudNavLink Href="/attributes" Match="NavLinkMatch.All" Icon="@Icons.Filled.Attachment">Attributes</MudNavLink>
-        <MudNavLink Href="/categories" Match="NavLinkMatch.All" Icon="@Icons.Filled.Category">Categories</MudNavLink>
-        <MudNavLink Href="/manufacturers" Match="NavLinkMatch.All" Icon="@Icons.Filled.Business">Manufacturers</MudNavLink>
-        <MudNavLink Href="/sellers" Match="NavLinkMatch.All" Icon="@Icons.Filled.ShoppingCart">Sellers</MudNavLink>
+        <MudNavLink Href="/search" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Search">Search</MudNavLink>
+        <MudNavLink Href="/attributes" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Attachment">Attributes</MudNavLink>
+        <MudNavLink Href="/categories" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Category">Categories</MudNavLink>
+        <MudNavLink Href="/manufacturers" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Business">Manufacturers</MudNavLink>
+        <MudNavLink Href="/sellers" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ShoppingCart">Sellers</MudNavLink>
     }
 </MudNavMenu>
 

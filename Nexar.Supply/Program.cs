@@ -1,38 +1,25 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
+using Nexar.Supply;
 using System;
-using System.Threading.Tasks;
+using System.Net.Http.Headers;
 
-namespace Nexar.Supply
-{
-    public class Program
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+
+builder.Services
+    .AddMudServices()
+    .AddNexarClient()
+    .ConfigureHttpClient((sp, client) =>
     {
-        public static async Task Main(string[] args)
-        {
-            var builder = WebAssemblyHostBuilder.CreateDefault(args);
-            builder.RootComponents.Add<App>("#app");
+        // throw on null token, the handler navigates to login
+        if (AppData.Token is null)
+            throw new Exception("Please login.");
 
-            builder.Services
-                .AddMudServices()
-                .AddSingleton<AppData>()
-                .AddNexarClient()
-                .ConfigureHttpClient((sp, client) =>
-                {
-                    var appData = sp.GetService<AppData>();
+        client.BaseAddress = new Uri(AppData.ApiEndpoint);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AppData.Token);
+    })
+;
 
-                    // get and check the token, throw if null,
-                    // the handler will navigate to login page
-                    var token = appData.Token;
-                    if (token == null)
-                        throw new Exception("Please login.");
-
-                    client.BaseAddress = new Uri(appData.ApiEndpoint);
-                    client.DefaultRequestHeaders.Add("token", token);
-                })
-            ;
-
-            await builder.Build().RunAsync();
-        }
-    }
-}
+await builder.Build().RunAsync();

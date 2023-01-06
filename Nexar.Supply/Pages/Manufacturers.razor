@@ -3,39 +3,37 @@
 @inject NexarClient Client
 @using Element = Nexar.Client.IManufacturers_SupManufacturers
 
-<MudContainer>
-    <MudCard>
-        <MudCardContent>
-            <MudText Typo="Typo.h4" GutterBottom="true">Manufacturers</MudText>
-            @if (_manufacturers == null)
-            {
-                <MudProgressCircular Indeterminate="true" />
-            }
-            else
-            {
-                <MudTable Items="@_manufacturers" Filter="FilterElement">
-                    <ToolBarContent>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="_filterString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>ID</MudTh>
-                        <MudTh>Name</MudTh>
-                        <MudTh>Homepage</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="ID">@context.Id</MudTd>
-                        <MudTd DataLabel="Name">@context.Name</MudTd>
-                        <MudTd DataLabel="Homepage"><MudLink Href="@context.HomepageUrl" Target="_blank">@context.HomepageUrl</MudLink></MudTd>
-                    </RowTemplate>
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-                </MudTable>
-            }
-        </MudCardContent>
-    </MudCard>
-</MudContainer>
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h4" GutterBottom="true">Manufacturers</MudText>
+        @if (_manufacturers == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudTable Items="@_manufacturers" Filter="FilterElement">
+                <ToolBarContent>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_filterString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Homepage</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.Id</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Homepage"><MudLink Href="@context.HomepageUrl" Target="_blank">@context.HomepageUrl</MudLink></MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
 
 @code {
     string _filterString = string.Empty;

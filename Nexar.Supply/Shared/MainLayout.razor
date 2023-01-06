@@ -1,5 +1,4 @@
 ﻿@inherits LayoutComponentBase
-@inject AppData AppData
 
 <MudThemeProvider />
 <MudDialogProvider />
@@ -9,26 +8,28 @@
     <MudAppBar Elevation="0">
         @if (!_drawerOpen)
         {
-            <MudIconButton Icon="@Icons.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())" />
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())" />
         }
         <img src="/brand.png" style="width:32px; height: 32px" />
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Filled.Search" Color="Color.Inherit" Title="Octopart search page" Link="https://octopart.com/api/v4/values" Target="_blank" />
-        <MudIconButton Icon="@Icons.Filled.Home" Color="Color.Inherit" Title="Nexar home page" Link="@AppData.NexarDotCom" Target="_blank" />
+        <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" Title="Octopart search page" Link="https://octopart.com/api/v4/values" Target="_blank" />
+        <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Title="Nexar home page" Link="@AppData.NexarDotCom" Target="_blank" />
         <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Title="Source code" Link="https://github.com/NexarDeveloper/web-supply-demo-blazor" Target="_blank" />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" Elevation="1">
         <MudDrawerHeader>
             @if (_drawerOpen)
             {
-                <MudIconButton Icon="@Icons.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())" />
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())" />
             }
             <MudText Typo="Typo.subtitle2">Nexar.Supply Demo</MudText>
         </MudDrawerHeader>
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-        @Body
+        <MudContainer MaxWidth="MaxWidth.Large">
+            @Body
+        </MudContainer>
     </MudMainContent>
 </MudLayout>
 
