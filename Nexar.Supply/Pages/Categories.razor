@@ -2,23 +2,20 @@
 @inherits AbstractPage
 @inject NexarClient Client
 
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.h4" GutterBottom="true">Categories</MudText>
-        @if (_treeItems == null)
-        {
-            <MudProgressCircular Indeterminate="true" />
-        }
-        else
-        {
-            <MudTreeView Items="_treeItems">
-                <ItemTemplate>
-                    <MudTreeViewItem Items="@context.Items" Value="@context" Text="@context.Tag.Name" />
-                </ItemTemplate>
-            </MudTreeView>
-        }
-    </MudCardContent>
-</MudCard>
+<MudText Typo="Typo.h4" GutterBottom="true">Categories</MudText>
+
+@if (_treeItems is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTreeView Items="_treeItems">
+        <ItemTemplate>
+            <MudTreeViewItem Items="@context.Items" Value="@context" Text="@context.Tag.Name" />
+        </ItemTemplate>
+    </MudTreeView>
+}
 
 @code {
     public class CategoryItem
@@ -38,7 +35,7 @@
         try
         {
             var res = await Client.CategoryTrees.ExecuteAsync();
-            EnsureNoErrors(res);
+            res.AssertNoErrors();
 
             _treeItems = new HashSet<CategoryItem>();
             foreach (var cat1 in res.Data.SupCategories)
@@ -62,7 +59,7 @@
         }
         catch (Exception ex)
         {
-            await ShowErrorAsync(ex.Message);
+            await ShowErrorAndResetAsync(ex.Message);
         }
     }
 }

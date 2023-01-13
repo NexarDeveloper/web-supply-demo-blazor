@@ -4,6 +4,7 @@
 @using Nexar.Client.Token
 
 <MudText>Blazor app powered by <MudLink Href=@AppData.ApiEndpoint Target="_blank">@AppData.ApiEndpoint</MudLink></MudText>
+
 <MudForm>
     <MudCard>
         <MudCardContent>
@@ -28,7 +29,7 @@
 @code {
     [Parameter]
     [SupplyParameterFromQuery(Name = "token")]
-    public string TokenParameter { get; set; }
+    public string TokenParameter { get; init; }
 
     string _clientId;
     string _clientSecret;
@@ -52,7 +53,7 @@
         }
         catch (Exception ex)
         {
-            await ShowErrorAsync(ex.Message);
+            await ShowErrorAndResetAsync(ex.Message);
         }
         finally
         {
@@ -91,8 +92,7 @@
         }
         catch (Exception ex)
         {
-            await ShowErrorAsync(ex.Message);
-            NavManager.NavigateTo("");
+            await ShowErrorAndResetAsync(ex.Message);
         }
     }
 }

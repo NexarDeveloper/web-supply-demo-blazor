@@ -2,9 +2,10 @@
 @inherits AbstractPage
 @inject NexarClient Client
 
+<MudText Typo="Typo.h4" GutterBottom="true">Search</MudText>
+
 <MudCard>
     <MudCardContent>
-        <MudText Typo="Typo.h4" GutterBottom="true">Search</MudText>
         <MudAutocomplete T="string" Label="Query"
                          TextChanged="QueryChanged" SearchFunc="@AutocompleteAsync"
                          ResetValueOnEmptyText="true" Dense="true" CoerceText="false" />
@@ -18,56 +19,46 @@
     </MudCardActions>
 </MudCard>
 
-@if (_manufacturers != null && _manufacturers.Count > 0)
+@if (_manufacturers?.Count > 0)
 {
-    <MudCard>
-        <MudCardContent>
-            <MudTable Items="@_manufacturers">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h6">Manufacturers</MudText>
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>ID</MudTh>
-                    <MudTh>Name</MudTh>
-                    <MudTh>Count</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="ID">@context.Id</MudTd>
-                    <MudTd DataLabel="Name">@context.Name</MudTd>
-                    <MudTd DataLabel="Count">@context.Count</MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager />
-                </PagerContent>
-            </MudTable>
-        </MudCardContent>
-    </MudCard>
+    <MudText Typo="Typo.h5" GutterBottom="true">Manufacturers</MudText>
+
+    <MudTable Items="@_manufacturers">
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Count</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.Id</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Count">@context.Count</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
 }
 
-@if (_parts != null && _parts.Count > 0)
+@if (_parts?.Count > 0)
 {
-    <MudCard>
-        <MudCardContent>
-            <MudTable Items="@_parts">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h6">Parts</MudText>
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>ID</MudTh>
-                    <MudTh>Mpn</MudTh>
-                    <MudTh>Manufacturer</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="ID">@context.Id</MudTd>
-                    <MudTd DataLabel="Mpn">@context.Mpn</MudTd>
-                    <MudTd DataLabel="Manufacturer">@context.Manufacturer</MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager />
-                </PagerContent>
-            </MudTable>
-        </MudCardContent>
-    </MudCard>
+    <MudText Typo="Typo.h5" GutterBottom="true">Parts</MudText>
+
+    <MudTable Items="@_parts">
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Mpn</MudTh>
+            <MudTh>Manufacturer</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.Id</MudTd>
+            <MudTd DataLabel="Mpn">@context.Mpn</MudTd>
+            <MudTd DataLabel="Manufacturer">@context.Manufacturer</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
 }
 
 @code {
@@ -110,7 +101,7 @@
         try
         {
             var res = await Client.Search.ExecuteAsync(_query);
-            EnsureNoErrors(res);
+            res.AssertNoErrors();
 
             _manufacturers = res.Data.SupSearch.ManufacturerAgg
                 .Select(x => new CompanyInfo(x.Company.Id, x.Company.Name, x.Count))
@@ -122,7 +113,7 @@
         }
         catch (Exception ex)
         {
-            await ShowErrorAsync(ex.Message);
+            await ShowErrorAndResetAsync(ex.Message);
         }
         finally
         {

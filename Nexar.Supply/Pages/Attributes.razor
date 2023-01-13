@@ -3,39 +3,36 @@
 @inject NexarClient Client
 @using Element = Nexar.Client.IAttributes_SupAttributes
 
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.h4" GutterBottom="true">Attributes</MudText>
-        @if (_attributes == null)
-        {
-            <MudProgressCircular Indeterminate="true" />
-        }
-        else
-        {
-            <MudTable Items="@_attributes" Filter="FilterElement">
-                <ToolBarContent>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_filterString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>ID</MudTh>
-                    <MudTh>Shortname</MudTh>
-                    <MudTh>Name</MudTh>
-                    <MudTh>Group</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="ID">@context.Id</MudTd>
-                    <MudTd DataLabel="Shortname">@context.Shortname</MudTd>
-                    <MudTd DataLabel="Name">@context.Name</MudTd>
-                    <MudTd DataLabel="Group">@context.Group</MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager />
-                </PagerContent>
-            </MudTable>
-        }
-    </MudCardContent>
-</MudCard>
+<MudText Typo="Typo.h4" GutterBottom="true">Attributes</MudText>
+
+@if (_attributes is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@_attributes" Filter="FilterElement">
+        <ToolBarContent>
+            <MudSpacer />
+            <MudTextField @bind-Value="_filterString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Shortname</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Group</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.Id</MudTd>
+            <MudTd DataLabel="Shortname">@context.Shortname</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Group">@context.Group</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
 
 @code {
     string _filterString = string.Empty;
@@ -46,24 +43,21 @@
         try
         {
             var res = await Client.Attributes.ExecuteAsync();
-            EnsureNoErrors(res);
+            res.AssertNoErrors();
 
             _attributes = res.Data.SupAttributes;
         }
         catch (Exception ex)
         {
-            await ShowErrorAsync(ex.Message);
+            await ShowErrorAndResetAsync(ex.Message);
         }
     }
 
     bool FilterElement(Element element)
     {
-        if (string.IsNullOrWhiteSpace(_filterString))
-            return true;
-        if (element.Name.Contains(_filterString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (element.Shortname.Contains(_filterString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
+        return
+            string.IsNullOrWhiteSpace(_filterString) ||
+            element.Name.Contains(_filterString, StringComparison.OrdinalIgnoreCase) ||
+            element.Shortname.Contains(_filterString, StringComparison.OrdinalIgnoreCase);
     }
 }
