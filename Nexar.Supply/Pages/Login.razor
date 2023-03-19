@@ -3,24 +3,23 @@
 @using System.Net.Http
 @using Nexar.Client.Token
 
-<MudText>Blazor app powered by <MudLink Href=@AppData.ApiEndpoint Target="_blank">@AppData.ApiEndpoint</MudLink></MudText>
-
+<br />
 <MudForm>
     <MudCard>
         <MudCardContent>
             <MudText Typo="Typo.h4" GutterBottom="true">Sign In</MudText>
-            <MudText>Don't have an account? <MudLink Href="@AppData.NexarDotCom" Target="_blank">Sign Up</MudLink></MudText>
+            <MudText>Don't have an account? <MudLink Href=@AppData.NexarDotCom Target="_blank">Sign Up</MudLink></MudText>
 
-            <MudTextField @bind-Value="@_clientId" Label="Client ID" Placeholder="Client ID"
-                          Variant="Variant.Outlined" id="username" name="username"></MudTextField>
-            <MudTextField @bind-Value="@_clientSecret" Label="Client secret" Placeholder="Client secret"
-                          Variant="Variant.Outlined" InputType="@InputType.Password" id="password" name="password" autocomplete="off" />
+            <MudTextField @bind-Value=@_clientId Label="Client ID" Placeholder="Client ID"
+                          Variant=Variant.Outlined id="username" name="username"></MudTextField>
+            <MudTextField @bind-Value=@_clientSecret Label="Client secret" Placeholder="Client secret"
+                          Variant=Variant.Outlined InputType=@InputType.Password id="password" name="password" autocomplete="off" />
         </MudCardContent>
         <MudCardActions>
-            <MudButton Color="Color.Primary" OnClick="@LoginAsync">Sign In</MudButton>
+            <MudButton Color=Color.Primary OnClick=@LoginAsync>Sign In</MudButton>
             @if (_loading)
             {
-                <MudProgressCircular Indeterminate="true" />
+                <MudProgressCircular Indeterminate=true />
             }
         </MudCardActions>
     </MudCard>
