@@ -47,9 +47,12 @@ type Query {
   desProjectById("The node identifier for a project." id: ID!): DesProject
   "Gets the unique identifier for a project from its internal identifier."
   desProjectIdFromAfsId(workspaceUrl: String! afsId: String! "If the project is known to be shared or internal, this parameter can be provided to make the query faster." isSharedProject: Boolean): DesProjectIdPayload!
+  "Gets the specified project export job."
+  desProjectExportJob(projectExportJobId: String!): DesProjectExportJob!
   desDesignItemById(id: ID!): DesDesignItem
   desLibrary(workspaceUrl: String!): DesLibrary!
   desComponentById(id: ID!): DesComponent
+  desComponentsByIds(ids: [ID!]!): [DesUnionPayload!]!
   desRevisionDetailsById(id: ID!): DesRevisionDetails
   desComponentTemplateById(id: ID!): DesComponentTemplate
   "Search for comment threads associated with a project."
@@ -122,6 +125,7 @@ type Query {
   datBomParts(items: [DatBomItemInput!]!): [DatBomPartsResult!]!
   datBomPartHistories(partIds: [String!]!): [DatBomPartHistory]!
   datBomAnalyses(items: [DatBomPartItemInput!]!): [DatBomAnalysis!]!
+  datBomCategoryIdsByDesignator(designators: [String!]!): [DatBomCategory]!
   "Get an SCR Job with a specific id"
   datScrJob("The id of the job" jobId: String!): DatScrJob!
   "Get a list of SCR jobs."
@@ -129,7 +133,10 @@ type Query {
   "Get link to a downloadable SCR report."
   datScrReport("ID of the SCR job" jobId: String!): DatScrReport!
   "Get current metered usage statistics."
-  datScrUsage: DatScrUsage!
+  datScrUsage: DatScrUsage
+  datScrIpnPartInfo(partIds: [String!]! eau: Long!): DatScrIpnPartInfo!
+  "Get Historical Procurability and recent market availability data for parts."
+  datScrPartInfos("List of part ID - Estimated Annual Usage (EAU) pairs" parts: [DatScrPartInfoInput!]!): [DatScrPartInfo]!
   datEddiLatestEdition: DatEddiEdition!
   datEddiEditions(where: DatEddiEditionFilterInput): [DatEddiEdition!]!
 }
@@ -152,6 +159,8 @@ type Mutation {
   desUploadProject(input: DesUploadProjectInput!): DesUploadProjectPayload!
   "*** PROTOTYPE, SUBJECT TO CHANGE ***"
   desUploadCollaborationSimulation(input: DesUploadCollaborationSimulationInput!): DesUploadCollaborationSimulationPayload!
+  "Creates a job that exports the specified project data."
+  desCreateProjectExportJob(input: DesCreateProjectExportJobInput!): DesCreateProjectExportJobPayload!
   "Updates a specific result block."
   desUpdateReuseBlock(input: DesUpdateReuseBlockInput!): DesUpdateReuseBlockPayload!
   "Creates a user."
@@ -257,7 +266,7 @@ type DesBomItem {
   "The detailed component information for this BOM item."
   component: DesComponent
   "The total number of times this item is used."
-  quantity: Decimal!
+  quantity: Int!
   "The list of each instance of this BOM item."
   bomItemInstances: [DesBomItemInstance!]!
 }
@@ -489,6 +498,12 @@ type DesCreateManufacturePackagePayload {
   errors: [DesPayloadError!]!
 }
 
+type DesCreateProjectExportJobPayload {
+  "The job ID to be used by `desProjectExportJob`."
+  projectExportJobId: String
+  errors: [DesPayloadError!]!
+}
+
 type DesCreateTaskCommentPayload {
   comment: DesComment
   errors: [DesPayloadError!]!
@@ -534,10 +549,11 @@ type DesDeleteUserPayload {
 
 "A design manages all of the schematic, PCB, and BOM content for a project."
 type DesDesign {
+  "The list of variations contained in this design."
+  variants(where: DesWipVariantFilterInput): [DesWipVariant!]!
   "The list of published versions of the design grouped into pages."
   releases("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesReleaseFilterInput): DesReleaseConnection
-  "The most recent version of the design."
-  workInProgress: DesWorkInProgress!
+  workInProgress: DesWorkInProgress! @deprecated(reason: "Use `variants` instead.")
 }
 
 type DesDesignExchange {
@@ -551,6 +567,8 @@ type DesDesignItem implements Node {
   id: ID!
   "The detailed component information for this design item."
   component: DesComponent
+  "*** PROTOTYPE, SUBJECT TO CHANGE ***"
+  mesh3D: DesMesh3D
   "The list of all comment threads related to this design item."
   commentThreads: [DesCommentThread!]
   "The unique label for this design item."
@@ -602,9 +620,16 @@ type DesDownloadableFile {
   downloadUrl: String!
 }
 
-type DesFolder {
+type DesErrorPayload {
+  message: String!
+}
+
+type DesFolder implements Node {
+  id: ID!
   name: String!
+  path: String!
   description: String!
+  parent: DesFolder
 }
 
 type DesFootprint {
@@ -664,6 +689,8 @@ type DesLayerProperty {
 }
 
 type DesLibrary {
+  "Gets library folders."
+  folders: [DesFolder!]!
   "Gets library components."
   components("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: DesComponentFilterInput): DesComponentConnection
   "Gets library component templates."
@@ -674,12 +701,81 @@ type DesLibrary {
 
 "Revision naming scheme details obtained by `desLibrary\/lifeCycleDefinitions`."
 type DesLifeCycleDefinition {
+  "The `DesUser` this lifecycle definition was created by."
+  createdBy: DesUser!
+  "The `DesUser` this lifecycle definition was last updated by."
+  updatedBy: DesUser!
+  "The `DesLifeCycleStateTransition` list for this lifecycle definition."
+  stateTransitions: [DesLifeCycleStateTransition]!
+  "The reference ID for this lifecycle definition."
   lifeCycleDefinitionId: String!
+  "The name of this lifecycle definition."
   name: String!
+  "The `DesContentTypeKind` list for this lifecycle definition."
+  contentTypes: [DesContentTypeKind!]!
+  "The `DateTime` this lifecycle definition was created."
+  createdAt: DateTime!
+  "The `DateTime` this lifecycle definition was last updated."
+  updatedAt: DateTime!
+  "The `DesLifeCycleStage` list for this lifecycle definition."
+  stages: [DesLifeCycleStage]!
+}
+
+type DesLifeCycleStage {
+  "The `DesUser` this lifecycle stage was created by."
+  createdBy: DesUser!
+  "The `DesUser` this lifecycle stage was last updated by."
+  updatedBy: DesUser!
+  "The reference ID for this lifecycle stage."
+  lifeCycleStageId: String!
+  "The name of this lifecycle stage."
+  name: String!
+  "The stage index for this lifecycle stage."
+  stageIndex: Int!
+  "The `DateTime` this lifecycle stage was created."
+  createdAt: DateTime!
+  "The `DateTime` this lifecycle stage was last updated at."
+  updatedAt: DateTime!
+  "The `DesLifeCycleState` list for this lifecycle stage."
+  states: [DesLifeCycleState!]!
 }
 
 type DesLifeCycleState {
+  "The `DesUser` this lifecycle state was created by."
+  createdBy: DesUser!
+  "The `DesUser` this lifecycle state was last updated by."
+  updatedBy: DesUser!
+  "The reference ID for this lifecycle state."
+  lifeCycleStateId: String!
+  "The name of this lifecycle state."
   name: String!
+  "The description of this lifecycle state."
+  description: String!
+  "The state index for this lifecycle state."
+  stateIndex: Int!
+  "The `DateTime` this lifecycle state was created."
+  createdAt: DateTime!
+  "The `DateTime` this lifecycle state was last updated at."
+  updatedAt: DateTime!
+}
+
+type DesLifeCycleStateTransition {
+  "The `DesUser` this lifecycle state transition was created by."
+  createdBy: DesUser!
+  "The `DesUser` this lifecycle state transition was last updated by."
+  updatedBy: DesUser!
+  "The `DesLifeCycleState` before the transition is applied."
+  lifeCycleStateBefore: DesLifeCycleState
+  "The `DesLifeCycleState` after the transition is applied."
+  lifeCycleStateAfter: DesLifeCycleState
+  "The reference ID for this lifecycle state transition."
+  lifeCycleStateTransitionId: String!
+  "The name of this lifecycle state transition."
+  name: String!
+  "The `DateTime` this lifecycle state transition was created."
+  createdAt: DateTime!
+  "The `DateTime` this lifecycle state transition was last updated at."
+  updatedAt: DateTime!
 }
 
 type DesManufacturePackage implements Node {
@@ -716,6 +812,10 @@ type DesManufacturerPart {
 type DesMention {
   "The mentioned user."
   user: DesUser!
+}
+
+type DesMesh3D {
+  glbFile: DesDownloadableFile
 }
 
 type DesModel3D {
@@ -778,6 +878,8 @@ type DesPcb {
   tracks(where: DesTrackFilterInput): [DesTrack!]!
   "The list of all multiple layer connections in this PCB."
   vias: [DesVia!]!
+  "*** PROTOTYPE, SUBJECT TO CHANGE ***"
+  mesh3D: DesMesh3D
   "The list of all comment threads related to this PCB."
   commentThreads: [DesCommentThread!]!
   "The reference identifier for this PCB."
@@ -841,9 +943,9 @@ type DesProject implements Node {
   "The node identifier for this project (used by `desProjectById`)."
   id: ID!
   "The account information for who created this project."
-  createdBy: DesUser
+  createdBy: DesUser!
   "The account information for who last modified this project."
-  updatedBy: DesUser
+  updatedBy: DesUser!
   "The list of the parameters describing this project."
   parameters("An optional list of parameter names to search." names: [String!]): [DesProjectParameter!]!
   "The web address to download a preview image for this project."
@@ -865,9 +967,9 @@ type DesProject implements Node {
   "The summary of this project content or purpose."
   description: String
   "The `DateTime` when this project was created."
-  createdAt: DateTime
+  createdAt: DateTime!
   "The `DateTime` when this project was last modified."
-  updatedAt: DateTime
+  updatedAt: DateTime!
   "The detailed design information for this project."
   design: DesDesign!
   "The list of project tasks. For a particular project consider using the more effective query `desProjectTasks`."
@@ -892,6 +994,15 @@ type DesProjectEdge {
   cursor: String!
   "The item at the end of the edge."
   node: DesProject!
+}
+
+type DesProjectExportJob {
+  "The job current status."
+  status: DesJobStatus!
+  "Whet the job status is `ERROR`, the error message."
+  reason: String
+  "When the job status is `DONE`, the result zip file download URL."
+  downloadUrl: String
 }
 
 type DesProjectIdPayload {
@@ -1033,8 +1144,20 @@ type DesRevisionDetails {
 
 "Revision naming scheme details obtained by `desLibrary\/revisionNamingSchemes`."
 type DesRevisionNamingScheme {
+  "The `DesUser` this revision naming scheme was created by."
+  createdBy: DesUser!
+  "The `DesUser` this revision naming scheme was last updated by."
+  updatedBy: DesUser!
+  "The reference ID for this revision naming scheme."
   revisionNamingSchemeId: String!
+  "The name of this revision naming scheme."
   name: String!
+  "The `DesContentTypeKind` list for this revision naming scheme."
+  contentTypes: [DesContentTypeKind!]!
+  "The `DateTime` this revision naming scheme was created."
+  createdAt: DateTime!
+  "The `DateTime` this revision naming scheme was last updated at."
+  updatedAt: DateTime!
 }
 
 "A schematic contains the design parts and logical connections."
@@ -1102,9 +1225,9 @@ type DesSupplierPart {
   companyName: String!
   "The part number (SKU)."
   partNumber: String!
-  "Available for library components."
+  "Use `prices` and `stocks` with library components only, e.g. `desLibrary\/components`, `desComponentById`."
   prices: [DesSupplierPrice!]
-  "Available for library components."
+  "Use `prices` and `stocks` with library components only, e.g. `desLibrary\/components`, `desComponentById`."
   stocks: [DesSupplierStock!]
 }
 
@@ -1470,6 +1593,8 @@ type SupPartExtrasTechnicalDetail {
   value: String!
 }
 
+union DesUnionPayload = DesComponent | DesErrorPayload
+
 input BooleanOperationFilterInput {
   eq: Boolean
   neq: Boolean
@@ -1551,6 +1676,25 @@ input DesCreateManufacturePackageInput {
   variantName: String
   "A webhook URL that will receive a POST request when the manufacture package has been created and shared."
   callbackUrl: String
+}
+
+input DesCreateProjectExportJobInput {
+  "The project node ID."
+  projectId: ID!
+  "The Git commit which determines the version of the project to use. If not provided, the latest version is used."
+  vcsRevisionId: String
+  "The project variant to use when creating the package. If not provided, the default variant is used."
+  variantName: String
+  "Tells to export any data specified by the input."
+  exportAny: DesProjectExportAnyInput
+  "Tells to export Gerber and specifies the options."
+  exportGerber: DesProjectExportGerberInput
+  "Tells to export GerberX2 and specifies the options."
+  exportGerberX2: DesProjectExportGerberX2Input
+  "Tells to export IDF and specifies the options."
+  exportIdf: DesProjectExportIdfInput
+  "Tells to export NCDrill and specifies the options."
+  exportNCDrill: DesProjectExportNCDrillInput
 }
 
 input DesCreateProjectTaskInput {
@@ -1656,6 +1800,33 @@ input DesOnCommentUpdatedInput {
 input DesPosition2DInput {
   x: Int!
   y: Int!
+}
+
+input DesProjectExportAnyInput {
+  "The content of Altium Designer `OutJob` file."
+  outJobContent: String!
+  "A suggested result file name. Default: `Export.zip`."
+  fileName: String
+}
+
+input DesProjectExportGerberInput {
+  "A suggested result file name. Default: `Gerber.zip`."
+  fileName: String
+}
+
+input DesProjectExportGerberX2Input {
+  "A suggested result file name. Default: `GerberX2.zip`."
+  fileName: String
+}
+
+input DesProjectExportIdfInput {
+  "A suggested result file name. Default: `IDF.zip`."
+  fileName: String
+}
+
+input DesProjectExportNCDrillInput {
+  "A suggested result file name. Default: `NCDrill.zip`."
+  fileName: String
 }
 
 "A project manages all development stages of the PCB\/PCA product lifecycle."
@@ -2083,6 +2254,13 @@ enum DesContentTypeKind {
   DXP_SDK
   DXP_PLUGIN
   BMS_AUTO_GENERATED_COMPONENTS
+  SCHEMATIC_SNIPPET
+  PCB_SNIPPET
+  MANAGED_BOM
+  HARNESS_LAYOUT
+  HARNESS_CONNECTIVITY
+  FABRICATION_FILE
+  ORCAD_PROJECT
 }
 
 enum DesDocumentType {
@@ -3638,6 +3816,10 @@ type DatBomAnalysis {
   message: String!
 }
 
+type DatBomCategory {
+  categoryID: Int!
+}
+
 type DatBomPart {
   partId: String!
   confidence: Float!
@@ -3651,6 +3833,7 @@ type DatBomPartHistory {
 type DatBomPartItem {
   itemRefId: String
   partId: String!
+  alternateCandidatePartIds: [String!]
   quantity: Int!
 }
 
@@ -3700,6 +3883,10 @@ type DatScrDeleteJobPayload {
   errors: [DatScrDeleteJobError!]
 }
 
+type DatScrIpnPartInfo {
+  ipnHistoricalProcurability: Float!
+}
+
 "Contains information about an SCR processing job."
 type DatScrJob {
   "The ID of the user who owns the job."
@@ -3716,6 +3903,16 @@ type DatScrJob {
   jobMessage: String
   "Statistics relating to the running of this job."
   runStats: DatScrRunStats
+}
+
+type DatScrPartInfo {
+  historicalProcurability: Float!
+  marketAvailabilityToday: Int!
+  marketAvailability7dAgo: Int!
+  marketAvailability14dAgo: Int!
+  marketAvailability21dAgo: Int!
+  marketAvailability28dAgo: Int!
+  monthlyMarketAvailability: [Int!]!
 }
 
 "Error indicates that the user has exceeded their quota."
@@ -3763,6 +3960,11 @@ type DatScrRunStats {
   numDestocked: Int
 }
 
+"Error indicates that an SCR subscription could not be found."
+type DatScrSubscriptionNotFoundError implements DatError {
+  message: String!
+}
+
 "User's metered usage statistics."
 type DatScrUsage {
   "Total number of distinct resolved parts within the current period."
@@ -3773,7 +3975,7 @@ type DatScrUsage {
   quota: Int!
 }
 
-union DatScrCreateJobError = DatScrQuotaExceededError
+union DatScrCreateJobError = DatScrQuotaExceededError | DatScrSubscriptionNotFoundError
 
 union DatScrDeleteJobError = DatScrCouldNotDeleteJobError
 
@@ -3826,11 +4028,14 @@ input DatBomItemInput {
   itemRefId: String
   manufacturerName: String
   mpn: String
+  description: String
+  designator: String
 }
 
 input DatBomPartItemInput {
   itemRefId: String
   partId: String!
+  alternateCandidatePartIds: [String!]
   quantity: Int!
 }
 
@@ -3891,6 +4096,11 @@ input DatScrDeleteJobInput {
   jobId: String!
 }
 
+input DatScrPartInfoInput {
+  partId: String!
+  eau: Int!
+}
+
 enum DatBomAnalysisLevel {
   ERROR
   WARNING
@@ -3920,6 +4130,9 @@ enum ApplyPolicy {
   AFTER_RESOLVER
   VALIDATION
 }
+
+"The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1."
+scalar Long
 
 "The built-in `Decimal` scalar type."
 scalar Decimal

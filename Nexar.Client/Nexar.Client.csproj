@@ -1,11 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <!--https://github.com/ChilliCream/graphql-platform/issues/3653-->
-    <BaseIntermediateOutputPath>$(MSBuildProjectExtensionsPath)</BaseIntermediateOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="StrawberryShake.CodeGeneration.CSharp.Analyzers" Version="12.18.0" />
-    <PackageReference Include="StrawberryShake.Transport.Http" Version="12.18.0" />
+    <PackageReference Include="StrawberryShake.Blazor" Version="13.2.0" />
   </ItemGroup>
 </Project>
