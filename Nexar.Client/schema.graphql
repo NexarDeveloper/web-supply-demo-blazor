@@ -1,4 +1,4 @@
-﻿schema {
+schema {
   query: Query
   mutation: Mutation
   subscription: Subscription
@@ -27,6 +27,8 @@ type Query {
   desSettings(workspaceUrl: String! names: [String!]!): [String]!
   "Gets life cycle definitions."
   desLifeCycleDefinitions(workspaceUrl: String!): [DesLifeCycleDefinition!]!
+  "Gets a lifecycle definition based on the id provided."
+  desLifeCycleDefinitionById(id: ID!): DesLifeCycleDefinition
   "Gets the first allowed life cycle by the content kind."
   desLifeCycleDefinitionByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesLifeCycleDefinition!
   "Gets revision naming schemes."
@@ -55,6 +57,7 @@ type Query {
   desComponentsByIds(ids: [ID!]!): [DesUnionPayload!]!
   desRevisionDetailsById(id: ID!): DesRevisionDetails
   desComponentTemplateById(id: ID!): DesComponentTemplate
+  desFolderById(id: ID!): DesFolder
   "Search for comment threads associated with a project."
   desCommentThreads("The node identifier for a project (This is the project field named \"id\")." projectId: ID!): [DesCommentThread!]!
   "Search for a specific comment thread associated with a project."
@@ -96,9 +99,9 @@ type Query {
   "Get all attributes"
   supAttributes: [SupAttribute!]!
   "Get manufacturer companies"
-  supManufacturers("list of company IDs.  Omit to fetch all manufacturers." ids: [String!]): [SupCompany!]!
+  supManufacturers("list of company IDs.  Omit to fetch all manufacturers." ids: [String!] "list of URL slugs for \/manufacturers paths" slugs: [String!]): [SupCompany!]!
   "Get seller companies (distributors)"
-  supSellers("list of company IDs.  Omit to fetch all sellers." ids: [String!]): [SupCompany!]!
+  supSellers("list of company IDs.  Omit to fetch all sellers." ids: [String!] "list of URL slugs for \/distributors paths" slugs: [String!]): [SupCompany!]!
   "Get categories"
   supCategories("list of category IDs. Omit to fetch all categories." ids: [String!] "list of \/electronic-parts SEO page paths for categories." paths: [String!]): [SupCategory!]!
   "Get parts by ID."
@@ -174,6 +177,14 @@ type Mutation {
   desUpdateFolderPermissions(input: DesUpdateFolderPermissionsInput!): DesUpdateFolderPermissionsPayload!
   "Updates lifecycle state for the provided component."
   desUpdateComponentLifeCycleState(input: DesUpdateComponentLifeCycleStateInput!): DesUpdateComponentLifeCycleStatePayload!
+  "Creates a folder in the library."
+  desCreateFolder(input: DesCreateFolderInput!): DesCreateFolderPayload!
+  "Updates the specified folder in the library."
+  desUpdateFolder(input: DesUpdateFolderInput!): DesUpdateFolderPayload!
+  "Moves the specified folder in the library."
+  desMoveFolder(input: DesMoveFolderInput!): DesMoveFolderPayload!
+  "Deletes the specified folder from the library."
+  desDeleteFolder(input: DesDeleteFolderInput!): DesDeleteFolderPayload!
   "Uploads the project zip file."
   desUploadProject(input: DesUploadProjectInput!): DesUploadProjectPayload!
   "*PROTOTYPE, SUBJECT TO CHANGE*"
@@ -218,6 +229,12 @@ type Mutation {
   desDeleteTaskComment(input: DesDeleteTaskCommentInput!): DesDeleteTaskCommentPayload!
   "Updates the specified task comment."
   desUpdateTaskComment(input: DesUpdateTaskCommentInput!): DesUpdateTaskCommentPayload!
+  "Creates the provided lifecycle definition, with associated states, stages and state transitions."
+  desCreateLifeCycleDefinition(input: DesCreateLifeCycleDefinitionInput!): DesCreateLifeCycleDefinitionPayload!
+  "Updates the defined lifecycle definition with those provided."
+  desUpdateLifeCycleDefinition(input: DesUpdateLifeCycleDefinitionInput!): DesUpdateLifeCycleDefinitionPayload!
+  "Deletes the provided lifecycle definitions."
+  desDeleteLifeCycleDefinition(input: DesDeleteLifeCycleDefinitionInput!): DesDeleteLifeCycleDefinitionPayload!
   "Creates a manufacture package."
   desCreateManufacturePackage(input: DesCreateManufacturePackageInput!): DesCreateManufacturePackagePayload!
   manCreateRapidQuoteRequest(qty: Int! meta: ManBoardMetaInput! shipping: ManShippingDetailsInput): ManRapidQuoteResponse
@@ -323,6 +340,8 @@ type DesCadBoard3DBodyModelData {
   isEcadProvidesRaw3DModel: Boolean!
   color: Long
   opacity: Float
+  "The token for getting URL by `desLibrary\/downloadUrlsByTokens`."
+  downloadToken: String
 }
 
 type DesCadBoardArea {
@@ -409,6 +428,10 @@ type DesCadBoardCutout {
 type DesCadBoardHole {
   holeType: DesCadHoleType!
   diameter: Int!
+  counterSize: Int!
+  counterDepth: Int!
+  counterAngle: Float!
+  counterType: DesCadCounterType!
   isPlated: Boolean!
   size: DesCadPoint!
   uniqueId: String
@@ -456,6 +479,7 @@ type DesCadBoardVariant {
   uniqueId: String
   name: String
   description: String
+  properties: [DesCadProperty!]
   variations: [DesCadComponentVariation!]
 }
 
@@ -521,6 +545,7 @@ type DesCadDesign {
   boardOrigin: DesCadPoint!
   boardOffsetMcadToEcadOrigin: DesCadPoint!
   coordinateSystemTranslation: DesCadPoint!
+  properties: [DesCadProperty!]
   componentTypes: [DesCadBoardComponentType!]
   holes: [DesCadBoardHole!]
   cutouts: [DesCadBoardCutout!]
@@ -625,6 +650,11 @@ type DesCollaborationSimulationRevisionEdge {
   cursor: String!
   "The item at the end of the edge."
   node: DesCollaborationSimulationRevision!
+}
+
+type DesColor {
+  hexString: String!
+  rgbString: String!
 }
 
 "A comment is one of remarks associated with a comment thread or task."
@@ -811,6 +841,17 @@ type DesCreateCommentThreadPayload {
   errors: [DesPayloadError!]!
 }
 
+type DesCreateFolderPayload {
+  "ID of the created folder."
+  id: ID
+  errors: [DesPayloadError!]!
+}
+
+type DesCreateLifeCycleDefinitionPayload {
+  id: ID!
+  errors: [DesPayloadError!]!
+}
+
 type DesCreateManufacturePackagePayload {
   jobId: ID!
   errors: [DesPayloadError!]!
@@ -846,6 +887,15 @@ type DesDeleteCommentPayload {
 }
 
 type DesDeleteCommentThreadPayload {
+  errors: [DesPayloadError!]!
+}
+
+type DesDeleteFolderPayload {
+  errors: [DesPayloadError!]!
+}
+
+type DesDeleteLifeCycleDefinitionPayload {
+  id: ID!
   errors: [DesPayloadError!]!
 }
 
@@ -1053,6 +1103,8 @@ type DesLibrary {
   componentTemplates("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesComponentTemplateConnection
   "Gets library reuse blocks."
   reuseBlocks("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesReuseBlockConnection
+  "*PROTOTYPE, SUBJECT TO CHANGE*"
+  downloadUrlsByTokens(tokens: [String!]!): [String]!
 }
 
 "Revision naming scheme details obtained by `desLibrary\/lifeCycleDefinitions`."
@@ -1063,8 +1115,10 @@ type DesLifeCycleDefinition {
   updatedBy: DesUser!
   "The `DesLifeCycleStateTransition` list for this lifecycle definition."
   stateTransitions: [DesLifeCycleStateTransition]!
+  "The node ID."
+  id: ID!
   "The reference ID for this lifecycle definition."
-  lifeCycleDefinitionId: String!
+  lifeCycleDefinitionId: String! @deprecated(reason: "Use `id` instead.")
   "The name of this lifecycle definition."
   name: String!
   "The `DesContentTypeKind` list for this lifecycle definition."
@@ -1078,6 +1132,7 @@ type DesLifeCycleDefinition {
   lifeCycleManagementType: DesLifeCycleManagementType!
   "Tells if this lifecycle definition is automatically assigned the first `DesLifeCycleState` when a revision is released."
   isRevisionSchemeAssigned: Boolean!
+  isControlledPerContentType: Boolean!
 }
 
 type DesLifeCycleStage {
@@ -1114,6 +1169,12 @@ type DesLifeCycleState {
   stateIndex: Int!
   "The `DateTime` this lifecycle state was created."
   createdAt: DateTime!
+  "Determines whether this lifecycle state is the first of all the states for the associated lifecycle definition."
+  isInitialState: Boolean!
+  "The background color for this lifecycle state."
+  backgroundColor: DesColor!
+  "The foreground color for this lifecycle state."
+  foregroundColor: DesColor!
   "The `DateTime` this lifecycle state was last updated at."
   updatedAt: DateTime!
 }
@@ -1135,6 +1196,8 @@ type DesLifeCycleStateTransition {
   createdAt: DateTime!
   "The `DateTime` this lifecycle state transition was last updated at."
   updatedAt: DateTime!
+  "The format string for the transition menu in Altium Designer."
+  menuTextFormat: String!
 }
 
 type DesManufacturePackage implements Node {
@@ -1179,6 +1242,10 @@ type DesMesh3D {
 
 type DesModel3D {
   parasolidFile: DesDownloadableFile
+}
+
+type DesMoveFolderPayload {
+  errors: [DesPayloadError!]!
 }
 
 type DesNcDrill {
@@ -1797,8 +1864,17 @@ type DesUpdateComponentTemplatePayload {
   errors: [DesPayloadError!]!
 }
 
+type DesUpdateFolderPayload {
+  errors: [DesPayloadError!]!
+}
+
 type DesUpdateFolderPermissionsPayload {
   folderId: ID!
+}
+
+type DesUpdateLifeCycleDefinitionPayload {
+  id: ID!
+  errors: [DesPayloadError!]!
 }
 
 type DesUpdateProjectPermissionsPayload {
@@ -2203,6 +2279,10 @@ input DesCadBoardHoleInput {
   associatedComponentDesignator: String
   holeType: DesCadHoleType
   diameter: Int
+  counterSize: Int
+  counterDepth: Int
+  counterAngle: Float
+  counterType: DesCadCounterType
   isPlated: Boolean
   size: DesCadBoardPointInput
 }
@@ -2249,6 +2329,7 @@ input DesCadBoardVariantInput {
   uniqueId: String
   name: String
   description: String
+  properties: [DesCadPropertyInput!]
   variations: [DesCadComponentVariationInput!]
 }
 
@@ -2314,6 +2395,7 @@ input DesCadDesignInput {
   boardOrigin: DesCadBoardPointInput
   boardOffsetMcadToEcadOrigin: DesCadBoardPointInput
   coordinateSystemTranslation: DesCadBoardPointInput
+  properties: [DesCadPropertyInput!]
   componentTypes: [DesCadBoardComponentTypeInput!]
   holes: [DesCadBoardHoleInput!]
   cutouts: [DesCadBoardCutoutInput!]
@@ -2352,6 +2434,13 @@ input DesCollaborationSimulationFileInput {
   fileName: String!
 }
 
+input DesColorInput {
+  "The color input in hex format, e.g. '#AABBCC'."
+  hexString: String
+  "The color input in numerical format, e.g. 'RGB(255, 255, 0)'."
+  rgbString: String
+}
+
 "A component contains the parametric details of a PCB part."
 input DesComponentFilterInput {
   and: [DesComponentFilterInput!]
@@ -2388,6 +2477,29 @@ input DesCreateCommentThreadInput {
   itemAsInternalObjectId: String
   area: DesRectangleInput
   releaseId: String
+}
+
+input DesCreateFolderInput {
+  "URL of the workspace into which the folder has to be created."
+  workspaceUrl: String!
+  "Folder name."
+  name: String!
+  "Folder description."
+  description: String
+  "Folder type."
+  folderType: DesFolderType!
+  "ID of the parent folder. If omitted or set to `null`, the folder will be placed under the library root."
+  parentId: ID
+  "Naming scheme for the folder items."
+  itemNamingSchemeTemplate: String
+  "Folder permissions (non recursive)."
+  permissions: [DesUpdateFolderPermissionInput!]
+}
+
+input DesCreateLifeCycleDefinitionInput {
+  "Defines which workspace the lifecycle definition should be created on."
+  workspaceUrl: String!
+  lifeCycleDefinition: DesLifeCycleDefinitionInput!
 }
 
 input DesCreateManufacturePackageInput {
@@ -2483,6 +2595,16 @@ input DesDeleteCommentThreadInput {
   commentThreadId: String!
 }
 
+input DesDeleteFolderInput {
+  "ID of the folder to delete."
+  id: ID!
+}
+
+input DesDeleteLifeCycleDefinitionInput {
+  "Defines which lifecycle definition should be deleted."
+  id: ID!
+}
+
 input DesDeleteTaskCommentInput {
   "The task node ID."
   taskId: ID!
@@ -2538,6 +2660,46 @@ input DesLayerFilterInput {
   and: [DesLayerFilterInput!]
   or: [DesLayerFilterInput!]
   name: StringOperationFilterInput
+}
+
+input DesLifeCycleDefinitionInput {
+  name: String!
+  isRevisionSchemeAssigned: Boolean!
+  isControlledPerContentType: Boolean
+  contentTypes: [DesContentTypeKind!]
+  stages: [DesLifeCycleStageInput!]
+  stateTransitions: [DesLifeCycleStateTransitionInput!]
+}
+
+input DesLifeCycleStageInput {
+  name: String!
+  stageIndex: Int!
+  states: [DesLifeCycleStateInput!]!
+}
+
+input DesLifeCycleStateInput {
+  name: String!
+  description: String!
+  isInitialState: Boolean
+  stateIndex: Int!
+  backgroundColor: DesColorInput
+  foregroundColor: DesColorInput
+}
+
+input DesLifeCycleStateTransitionInput {
+  name: String!
+  menuTextFormat: String!
+  "The name of the lifecycle state before the transition."
+  stateBefore: String!
+  "The name of the lifecycle state after the transition."
+  stateAfter: String!
+}
+
+input DesMoveFolderInput {
+  "ID of the folder to move."
+  id: ID!
+  "ID of the new parent folder. If omitted or set to `null`, the folder will be placed under the library root."
+  parentId: ID
 }
 
 input DesOnCommentUpdatedInput {
@@ -2771,6 +2933,21 @@ input DesUpdateComponentTemplateInput {
   description: String
 }
 
+input DesUpdateFolderInput {
+  "ID of the folder to update."
+  id: ID!
+  "New name of the folder. Not updated if omitted or set to `null`."
+  name: String
+  "New description of the folder. Not updated if omitted or set to `null`."
+  description: String
+  "New folder type. Not updated if omitted or set to `null`."
+  folderType: DesFolderType
+  "New naming scheme for the folder items. Not updated if omitted or set to `null`."
+  itemNamingSchemeTemplate: String
+  "New folder permissions (non recursive). Not updated if omitted or set to `null`."
+  permissions: [DesUpdateFolderPermissionInput!]
+}
+
 input DesUpdateFolderPermissionInput {
   "Allows updating, deleting and creating when set, otherwise only read permissions will be allowed."
   canModify: Boolean!
@@ -2786,6 +2963,12 @@ input DesUpdateFolderPermissionsInput {
   "Tells to apply the permissions update to all child objects. By default permissions are only set for the folder itself."
   applyToChildren: Boolean
   permissions: [DesUpdateFolderPermissionInput!]!
+}
+
+input DesUpdateLifeCycleDefinitionInput {
+  "Defines which lifecycle definition should be updated."
+  id: ID!
+  lifeCycleDefinition: DesLifeCycleDefinitionInput!
 }
 
 input DesUpdateProjectPermissionInput {
@@ -3064,6 +3247,14 @@ enum DesCadComponentVariationKind {
   ALTERNATE
 }
 
+enum DesCadCounterType {
+  NONE
+  COUNTERSINK_TOP
+  COUNTERSINK_BOTTOM
+  COUNTERBORE_TOP
+  COUNTERBORE_BOTTOM
+}
+
 enum DesCadHoleType {
   CIRCULAR
   RECTANGULAR
@@ -3155,6 +3346,7 @@ enum DesContentTypeKind {
   ORCAD_PROJECT
   HARNESS_LAYOUT_TEMPLATE
   HARNESS_WIRING_TEMPLATE
+  PACKAGE
 }
 
 enum DesDocumentType {
@@ -3208,6 +3400,8 @@ enum DesFolderType {
   DRAFTSMAN_CATALOG
   SHARED_FOLDER
   MANAGED_BOM_CATALOG
+  HARNESS_LAYOUT_TEMPLATES_CATALOG
+  HARNESS_WIRING_TEMPLATES_CATALOG
 }
 
 enum DesJobStatus {
@@ -3398,6 +3592,10 @@ type SupBlurb {
   description: String!
   "Longer description of Category."
   content: String!
+  "Description used in webpage metadata - SEO optimised"
+  metaDescription: String!
+  "Title used in webpage metadata - SEO optimised"
+  metaTitle: String!
 }
 
 "cadAgg produces a CadBucket with the count of parts that have CAD Symbol + Footprint and 3D model"
@@ -3454,6 +3652,8 @@ type SupCompany {
   isBroker: Boolean! @deprecated(reason: "use `PartSeller.is_broker` instead")
   "True if a distributor has an API integration with Octopart to provide latest pricing and stock data."
   isDistributorApi: Boolean!
+  "True if Octocart is supported for this distributor"
+  isOctocartSupported: Boolean!
 }
 
 "manufacturerAgg and distributorAgg produce a CompanyBucket with company + counts"
@@ -3528,6 +3728,7 @@ type SupOffer {
   packaging: String
   "Minimum Order Quantity: smallest number of parts that can be purchased"
   moq: Int
+  "The price points of the offer, sorted by minimum order quantity"
   prices: [SupPricePoint!]!
   "The URL to view offer on distributor website.  This will redirect via Octopart's server."
   clickUrl: String!
@@ -5115,6 +5316,7 @@ enum DatBomAnalysisLevel {
 
 enum DatBomPartSearchStrategy {
   EXACT
+  EXACT_MPN_ONLY
   PARTIAL
   FUZZY
 }
@@ -5162,12 +5364,8 @@ scalar MultiplierPath
 "Delegates a resolver to a remote schema."
 directive @delegate("The path to the field on the remote schema." path: String "The name of the schema to which this field shall be delegated to." schema: String!) on FIELD_DEFINITION
 
-directive @computed("Specifies the fields on which a computed field is dependent on." dependantOn: [String!]) on FIELD_DEFINITION
-
 "Annotates the original name of a type."
 directive @source("The original name of the annotated type." name: String! "The name of the schema to which this type belongs to." schema: String!) repeatable on OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
-
-directive @tag(name: String!) repeatable on SCHEMA | SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
 
 directive @Binding(constraint: String!) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
 
@@ -5175,15 +5373,8 @@ directive @BlockAll(roles: [SupRole!]!) on FIELD_DEFINITION
 
 directive @Expensive on FIELD_DEFINITION
 
-directive @HasPlanTier(tier: SupPlanTier!) on FIELD_DEFINITION
-
-directive @NexarEnterprise(feature: SupNexarFeatureID!) on FIELD_DEFINITION
+directive @HasPlanTier(tier: SupPlanTier!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
 
 directive @NexarRequire(feature: SupNexarFeatureID!) on FIELD_DEFINITION
 
 directive @RequireAny(roles: [SupRole!]!) on FIELD_DEFINITION
-
-directive @auth(access: [ManAccess!]!) on FIELD_DEFINITION
-
-"The cost directives is used to express the complexity of a field."
-directive @cost("Defines the complexity of the field." complexity: Int! = 1 "Defines field arguments that act as complexity multipliers." multipliers: [MultiplierPath!] defaultMultiplier: Int) on FIELD_DEFINITION

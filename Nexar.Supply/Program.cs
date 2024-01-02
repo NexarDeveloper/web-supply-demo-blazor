@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 using Nexar.Supply;
+using StrawberryShake.Serialization;
 using System;
 using System.Net.Http.Headers;
 
@@ -10,6 +11,7 @@ builder.RootComponents.Add<App>("#app");
 
 builder.Services
     .AddMudServices()
+    .AddSingleton<ISerializer>(new JsonSerializer("Map"))
     .AddNexarClient()
     .ConfigureHttpClient((sp, client) =>
     {
