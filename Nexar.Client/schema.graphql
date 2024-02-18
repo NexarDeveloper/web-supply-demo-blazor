@@ -33,6 +33,8 @@ type Query {
   desLifeCycleDefinitionByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesLifeCycleDefinition!
   "Gets revision naming schemes."
   desRevisionNamingSchemes(workspaceUrl: String!): [DesRevisionNamingScheme!]!
+  "Gets a revision naming scheme based on the ID provided."
+  desRevisionNamingSchemeById(id: ID!): DesRevisionNamingScheme
   "Gets the first allowed naming scheme by the content kind."
   desRevisionNamingSchemeByContentTypeKind(workspaceUrl: String! kind: DesContentTypeKind!): DesRevisionNamingScheme!
   "Gets the specified workspace team."
@@ -153,6 +155,10 @@ type Query {
   datEddiLatestEdition: DatEddiEdition!
   datEddiEditions(where: DatEddiEditionFilterInput): [DatEddiEdition!]!
   supOctocart(items: [SupOctocartPartsBySellerInput!]! country: String = "US" currency: String = "USD"): [SupOctocartLink!]!
+  datRepReports(companyId: String! "Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: IDatRepReportFilterInput order: [IDatRepReportSortInput!]): DatRepReportsConnection
+  datRepDownloadableFile(companyId: String! reportId: String!): DatRepDownloadableFile
+  datRepOctopartReportTypes: [DatRepOctopartReportType!]!
+  datRepOctopartReportRequests(companyId: String!): [DatRepOctopartReportRequest!]!
 }
 
 type Mutation {
@@ -235,6 +241,12 @@ type Mutation {
   desUpdateLifeCycleDefinition(input: DesUpdateLifeCycleDefinitionInput!): DesUpdateLifeCycleDefinitionPayload!
   "Deletes the provided lifecycle definitions."
   desDeleteLifeCycleDefinition(input: DesDeleteLifeCycleDefinitionInput!): DesDeleteLifeCycleDefinitionPayload!
+  "Creates a revision naming scheme."
+  desCreateRevisionNamingScheme(input: DesCreateRevisionNamingSchemeInput!): DesCreateRevisionNamingSchemePayload!
+  "Updates a revision naming scheme."
+  desUpdateRevisionNamingScheme(input: DesUpdateRevisionNamingSchemeInput!): DesUpdateRevisionNamingSchemePayload!
+  "Deletes the revision naming scheme."
+  desDeleteRevisionNamingScheme(input: DesDeleteRevisionNamingSchemeInput!): DesDeleteRevisionNamingSchemePayload!
   "Creates a manufacture package."
   desCreateManufacturePackage(input: DesCreateManufacturePackageInput!): DesCreateManufacturePackagePayload!
   manCreateRapidQuoteRequest(qty: Int! meta: ManBoardMetaInput! shipping: ManShippingDetailsInput): ManRapidQuoteResponse
@@ -297,8 +309,9 @@ type DesAssemblyDrawings {
 type DesBom implements Node {
   "The node identifier for this BOM (used by `desBomById`)."
   id: ID!
-  "The list of each unique part within the BOM."
-  bomItems: [DesBomItem!]!
+  bomItems: [DesBomItem!]! @deprecated(reason: "Use `items`.")
+  "The list of BOM items returned by pages."
+  items("Returns the first N elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last N elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DesBomItemConnection
 }
 
 "A Bill of Materials (BOM) item contains usage information for a unique component on the PCB."
@@ -311,8 +324,30 @@ type DesBomItem {
   bomItemInstances: [DesBomItemInstance!]!
 }
 
+"A connection to a list of items."
+type DesBomItemConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [DesBomItemEdge!]
+  "A flattened list of the nodes."
+  nodes: [DesBomItem!]
+  "Identifies the total count of items in the connection."
+  totalCount: Int!
+}
+
+"An edge in a connection."
+type DesBomItemEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: DesBomItem!
+}
+
 "A Bill of Materials (BOM) item instance contains information for one specific use case of the item."
 type DesBomItemInstance {
+  "An alternate component used in this variant."
+  alternateComponent: DesComponent
   "The unique label for this item."
   designator: String!
   "The variant use status for this item."
@@ -586,6 +621,8 @@ type DesCadSplitLine {
 
 "ECAD or MCAD revision data."
 type DesCollaborationRevision {
+  "Revision download data."
+  downloadableFile: DesDownloadableFile!
   "The user who created this revision."
   createdBy: DesUser!
   "*PROTOTYPE, SUBJECT TO CHANGE*"
@@ -594,8 +631,6 @@ type DesCollaborationRevision {
   comment: String!
   "Creation time."
   createdAt: DateTime!
-  "Revision download data."
-  downloadableFile: DesDownloadableFile!
 }
 
 "A connection to a list of items."
@@ -714,6 +749,8 @@ type DesCommentThread {
   createdBy: DesUser!
   "The account information for who most recently modified this comment thread."
   modifiedBy: DesUser!
+  "The web address to download the screenshot associated with the creation of this comment thread."
+  originalStateScreenshotUrl: String
   "The list of replies associated with this comment thread."
   comments: [DesComment!]!
   "The reference identifier for this comment thread (used by `desCreateComment`, `desDeleteComment`, `desUpdateComment`)."
@@ -723,8 +760,6 @@ type DesCommentThread {
   createdAt: DateTime!
   "The `DateTime` for the most recent modification of this comment thread."
   modifiedAt: DateTime!
-  "The web address to download the screenshot associated with the creation of this comment thread."
-  originalStateScreenshotUrl: String
   "The sequence number of this comment thread."
   threadNumber: Int!
   "The information about properties related to this comment thread."
@@ -863,6 +898,12 @@ type DesCreateProjectExportJobPayload {
   errors: [DesPayloadError!]!
 }
 
+type DesCreateRevisionNamingSchemePayload {
+  "ID of the created revision naming scheme."
+  id: ID!
+  errors: [DesPayloadError!]!
+}
+
 type DesCreateTaskCommentPayload {
   comment: DesComment
   errors: [DesPayloadError!]!
@@ -896,6 +937,10 @@ type DesDeleteFolderPayload {
 
 type DesDeleteLifeCycleDefinitionPayload {
   id: ID!
+  errors: [DesPayloadError!]!
+}
+
+type DesDeleteRevisionNamingSchemePayload {
   errors: [DesPayloadError!]!
 }
 
@@ -1600,37 +1645,16 @@ type DesRevisionDetails {
   comment: String
 }
 
-type DesRevisionNameLevel {
-  "The `DesUser` this revision name level was created by."
-  createdBy: DesUser!
-  "The `DesUser` this revision name level was last updated by."
-  updatedBy: DesUser!
-  "The reference ID for this revision name level."
-  revisionNameLevelId: String!
-  "The name of this revision name level."
-  name: String!
-  "The `DateTime` this revision name level was created."
-  createdAt: DateTime!
-  "The `DateTime` this revision name level was last updated at."
-  updatedAt: DateTime!
-  "The minimum width of this revision name level."
-  minimumWidth: Int!
-  "The level index of this revision name level."
-  levelIndex: Int!
-  "The level separator of this revision name level."
-  levelSeparator: String!
-  "The level sequence of this revision name level."
-  levelSequence: String!
-}
-
-"Revision naming scheme details obtained by `desLibrary\/revisionNamingSchemes`."
+"Revision naming scheme details obtained by `desLibrary\/revisionNamingSchemes`. More information is available on revision naming schemes at: https:\/\/www.altium.com\/documentation\/altium-designer\/accessing-detailed-item-view#!revision_naming_scheme_dlg"
 type DesRevisionNamingScheme {
   "The `DesUser` this revision naming scheme was created by."
   createdBy: DesUser!
   "The `DesUser` this revision naming scheme was last updated by."
   updatedBy: DesUser!
+  "The node ID."
+  id: ID!
   "The reference ID for this revision naming scheme."
-  revisionNamingSchemeId: String!
+  revisionNamingSchemeId: String! @deprecated(reason: "Use `id` instead.")
   "The name of this revision naming scheme."
   name: String!
   "The `DesContentTypeKind` list for this revision naming scheme."
@@ -1639,10 +1663,37 @@ type DesRevisionNamingScheme {
   createdAt: DateTime!
   "The `DateTime` this revision naming scheme was last updated at."
   updatedAt: DateTime!
-  "The `DesRevisionNameLevel` list for this revision naming scheme."
-  levels: [DesRevisionNameLevel!]!
-  "The revision separator of this revision naming scheme."
+  "The `DesRevisionNamingSchemeLevel` list for this revision naming scheme."
+  levels: [DesRevisionNamingSchemeLevel!]!
+  "The separator used between item ID and revision ID."
   itemRevisionSeparator: String!
+  "If true, the revision naming scheme is only applicable to objects of the content types specified by ContentTypes."
+  isControlledPerContentType: Boolean!
+}
+
+type DesRevisionNamingSchemeLevel {
+  "The `DesUser` this revision naming scheme level was created by."
+  createdBy: DesUser!
+  "The `DesUser` this revision naming scheme level was last updated by."
+  updatedBy: DesUser!
+  "The reference ID for this revision naming scheme level."
+  revisionNameLevelId: String!
+  "The name of this revision naming scheme level. In Altium Designer it is known as 'Caption'."
+  name: String!
+  "The `DateTime` this revision naming scheme level was created."
+  createdAt: DateTime!
+  "The `DateTime` this revision naming scheme level was last updated at."
+  updatedAt: DateTime!
+  "The minimum character length allowed for this revision naming scheme level."
+  minimumWidth: Int!
+  "The level index of this level in the revision naming scheme."
+  levelIndex: Int!
+  "The separator prefix character for this revision naming scheme level."
+  levelSeparator: String!
+  "The naming policy for this revision naming scheme level."
+  revisionNamingPolicy: DesRevisionNamingPolicy!
+  "The level sequence of this revision naming scheme level."
+  levelSequence: String! @deprecated(reason: "Use `RevisionNamingPolicy` instead.")
 }
 
 "A schematic contains the design parts and logical connections."
@@ -1882,6 +1933,10 @@ type DesUpdateProjectPermissionsPayload {
 }
 
 type DesUpdateReuseBlockPayload {
+  errors: [DesPayloadError!]!
+}
+
+type DesUpdateRevisionNamingSchemePayload {
   errors: [DesPayloadError!]!
 }
 
@@ -2545,6 +2600,32 @@ input DesCreateProjectTaskInput {
   task: DesCreateTaskInput!
 }
 
+input DesCreateRevisionNamingSchemeInput {
+  "The workspace URL that the revision naming scheme should be created on."
+  workspaceUrl: String!
+  "The name of this revision naming scheme."
+  name: String!
+  "If true, the revision naming scheme is only applicable to objects of the content types specified by ContentTypes."
+  isControlledPerContentType: Boolean
+  "If `IsControlledPerContentType` is true, the list of content types for which this revision naming scheme is applicable."
+  contentTypes: [DesContentTypeKind!]
+  "The list of numbering levels for this revision naming scheme. Maximum of 3 levels."
+  levels: [DesCreateRevisionNamingSchemeLevelInput!]!
+  "The separator used between item ID and revision ID. Allowed characters are:  ,.-_"
+  itemRevisionSeparator: String!
+}
+
+input DesCreateRevisionNamingSchemeLevelInput {
+  "The name of this revision naming level. In Altium Designer it is known as 'Caption'."
+  name: String!
+  "The minimum character length allowed for this revision naming scheme level"
+  minimumWidth: Int!
+  "The separator prefix character for this revision naming scheme level. Allowed characters are:  ,.-_"
+  levelSeparator: String!
+  "The naming policy for this revision naming scheme level."
+  revisionNamingPolicy: DesRevisionNamingPolicy!
+}
+
 input DesCreateTaskCommentInput {
   "The task node ID."
   taskId: ID!
@@ -2602,6 +2683,11 @@ input DesDeleteFolderInput {
 
 input DesDeleteLifeCycleDefinitionInput {
   "Defines which lifecycle definition should be deleted."
+  id: ID!
+}
+
+input DesDeleteRevisionNamingSchemeInput {
+  "The revision naming scheme to be deleted."
   id: ID!
 }
 
@@ -2992,6 +3078,32 @@ input DesUpdateReuseBlockInput {
   id: ID!
   name: String
   description: String
+}
+
+input DesUpdateRevisionNamingSchemeInput {
+  "The revision naming scheme to be updated."
+  id: ID!
+  "The name of this revision naming scheme."
+  name: String
+  "If true, the revision naming scheme is only applied to objects that are controlled by that content type. Otherwise, content types are ignored."
+  isControlledPerContentType: Boolean
+  "If `IsControlledPerContentType` is true, the list of content types for which this revision naming scheme is applicable."
+  contentTypes: [DesContentTypeKind!]
+  "The list of numbering levels for this revision naming scheme. Maximum of 3 levels."
+  levels: [DesUpdateRevisionNamingSchemeLevelInput!]
+  "The separator used between item ID and revision ID. Allowed characters are:  ,.-_"
+  itemRevisionSeparator: String
+}
+
+input DesUpdateRevisionNamingSchemeLevelInput {
+  "The name of this revision naming level. In Altium Designer it is known as 'Caption'."
+  name: String
+  "The minimum character length allowed for this revision naming scheme level"
+  minimumWidth: Int
+  "The separator prefix character for this revision naming scheme level. Allowed characters are:  ,.-_"
+  levelSeparator: String
+  "The naming policy for this revision naming scheme level."
+  revisionNamingPolicy: DesRevisionNamingPolicy
 }
 
 input DesUpdateTaskCommentInput {
@@ -3499,6 +3611,19 @@ enum DesPrimitiveShape {
   ROTATED_RECTANGLE
   ROUNDED_RECTANGLE
   CUSTOM
+}
+
+enum DesRevisionNamingPolicy {
+  "Number whose sequence starts at 0"
+  NUMERIC_ZERO
+  "Number whose sequence starts at 1"
+  NUMERIC_ONE
+  "Upper case letters"
+  ALPHA_UPPER
+  "Lower case letters"
+  ALPHA_LOWER
+  "Revision letters per ASME Y14.35M standard: ABCDEFGHJKLMNPRTUVWY"
+  ASME_Y14_35M
 }
 
 enum DesTaskPriority {
@@ -5172,51 +5297,6 @@ union DatScrCreateJobError = DatScrQuotaExceededError | DatScrSubscriptionNotFou
 
 union DatScrDeleteJobError = DatScrCouldNotDeleteJobError
 
-input ComparableDateTimeOperationFilterInput {
-  eq: DateTime
-  neq: DateTime
-  in: [DateTime!]
-  nin: [DateTime!]
-  gt: DateTime
-  ngt: DateTime
-  gte: DateTime
-  ngte: DateTime
-  lt: DateTime
-  nlt: DateTime
-  lte: DateTime
-  nlte: DateTime
-}
-
-input ComparableInt32OperationFilterInput {
-  eq: Int
-  neq: Int
-  in: [Int!]
-  nin: [Int!]
-  gt: Int
-  ngt: Int
-  gte: Int
-  ngte: Int
-  lt: Int
-  nlt: Int
-  lte: Int
-  nlte: Int
-}
-
-input ComparableNullableOfDoubleOperationFilterInput {
-  eq: Float
-  neq: Float
-  in: [Float]
-  nin: [Float]
-  gt: Float
-  ngt: Float
-  gte: Float
-  ngte: Float
-  lt: Float
-  nlt: Float
-  lte: Float
-  nlte: Float
-}
-
 input DatBomItemInput {
   itemRefId: String
   manufacturerName: String
@@ -5235,24 +5315,24 @@ input DatBomPartItemInput {
 input DatEddiCategoryFilterInput {
   and: [DatEddiCategoryFilterInput!]
   or: [DatEddiCategoryFilterInput!]
-  id: ComparableInt32OperationFilterInput
+  id: IntOperationFilterInput
   name: StringOperationFilterInput
 }
 
 input DatEddiEditionFilterInput {
   and: [DatEddiEditionFilterInput!]
   or: [DatEddiEditionFilterInput!]
-  id: ComparableInt32OperationFilterInput
+  id: IntOperationFilterInput
   title: StringOperationFilterInput
-  releaseDate: ComparableDateTimeOperationFilterInput
+  releaseDate: DateTimeOperationFilterInput
 }
 
 input DatEddiIndexFilterInput {
   and: [DatEddiIndexFilterInput!]
   or: [DatEddiIndexFilterInput!]
-  indexDate: ComparableDateTimeOperationFilterInput
-  supplyIndex: ComparableNullableOfDoubleOperationFilterInput
-  demandIndex: ComparableNullableOfDoubleOperationFilterInput
+  indexDate: DateTimeOperationFilterInput
+  supplyIndex: FloatOperationFilterInput
+  demandIndex: FloatOperationFilterInput
 }
 
 input DatEddiTimeSeriesFilterInput {
@@ -5295,6 +5375,36 @@ input DatScrPartInfoInput {
   partId: String!
   "Estimated Annual Usage (EAU) as a number of pieces."
   eau: Int!
+}
+
+input FloatOperationFilterInput {
+  eq: Float
+  neq: Float
+  in: [Float]
+  nin: [Float]
+  gt: Float
+  ngt: Float
+  gte: Float
+  ngte: Float
+  lt: Float
+  nlt: Float
+  lte: Float
+  nlte: Float
+}
+
+input IntOperationFilterInput {
+  eq: Int
+  neq: Int
+  in: [Int]
+  nin: [Int]
+  gt: Int
+  ngt: Int
+  gte: Int
+  ngte: Int
+  lt: Int
+  nlt: Int
+  lte: Int
+  nlte: Int
 }
 
 input SupOctocartItemInput {
@@ -5341,6 +5451,110 @@ enum DatScrPartInfoRating {
   AMBER
   "This part has been procurable for the past 12 months and is predicted to be available in your desired quantity for 2+ months."
   GREEN
+}
+
+interface DatRepReport {
+  id: String!
+  fileType: String!
+  fileSize: Int!
+  createdDate: DateTime!
+  title: String!
+}
+
+interface Error {
+  message: String!
+}
+
+type DatRepDownloadableFile {
+  report: DatRepReport!
+  downloadUrl: String!
+  urlExpiryDate: DateTime!
+}
+
+type DatRepOctopartReport implements DatRepReport {
+  id: String!
+  fileType: String!
+  fileSize: Int!
+  createdDate: DateTime!
+  title: String!
+  companyId: String!
+}
+
+type DatRepOctopartReportRequest {
+  id: String!
+  companyId: String!
+  reportTypeId: String!
+  createdDate: DateTime!
+  numActiveReports: Int!
+  numDeletedReports: Int!
+}
+
+type DatRepOctopartReportRequestError implements Error {
+  message: String!
+}
+
+type DatRepOctopartReportType {
+  id: String!
+  name: String!
+  reportFamily: String!
+  description: String
+  frequency: String
+  exampleUrl: String
+}
+
+"A connection to a list of items."
+type DatRepReportsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [DatRepReportsEdge!]
+  "A flattened list of the nodes."
+  nodes: [DatRepReport!]
+  "Identifies the total count of items in the connection."
+  totalCount: Int!
+}
+
+"An edge in a connection."
+type DatRepReportsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: DatRepReport!
+}
+
+type DatRepRequestOctopartReportsPayload {
+  datRepOctopartReportRequest: [DatRepOctopartReportRequest!]
+  errors: [DatRepRequestOctopartReportsError!]
+}
+
+union DatRepRequestOctopartReportsError = DatRepOctopartReportRequestError
+
+input DatRepRequestOctopartReportsInput {
+  companyId: String!
+  reportTypeIds: [String!]!
+}
+
+input IDatRepReportFilterInput {
+  and: [IDatRepReportFilterInput!]
+  or: [IDatRepReportFilterInput!]
+  id: StringOperationFilterInput
+  fileType: StringOperationFilterInput
+  fileSize: IntOperationFilterInput
+  createdDate: DateTimeOperationFilterInput
+  title: StringOperationFilterInput
+}
+
+input IDatRepReportSortInput {
+  id: SortEnumType
+  fileType: SortEnumType
+  fileSize: SortEnumType
+  createdDate: SortEnumType
+  title: SortEnumType
+}
+
+enum SortEnumType {
+  ASC
+  DESC
 }
 
 enum ApplyPolicy {
