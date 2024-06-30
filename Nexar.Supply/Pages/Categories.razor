@@ -12,23 +12,23 @@ else
 {
     <MudTreeView Items="_treeItems">
         <ItemTemplate>
-            <MudTreeViewItem Items="@context.Items" Value="@context" Text="@context.Tag.Name" />
+            <MudTreeViewItem Items="@context.Children" Value="@context.Value" Text="@context.Text" />
         </ItemTemplate>
     </MudTreeView>
 }
 
 @code {
-    public class CategoryItem
-    {
-        public CategoryItem(ICategoryInfo tag)
-        {
-            Tag = tag;
-        }
-        public ICategoryInfo Tag { get; }
-        public HashSet<CategoryItem> Items { get; } = new();
-    }
 
-    HashSet<CategoryItem> _treeItems;
+    readonly List<MyTreeItemData> _treeItems = new();
+
+    public class MyTreeItemData : TreeItemData<ICategoryInfo>
+    {
+        public MyTreeItemData(ICategoryInfo value) : base(value)
+        {
+            Text = value.Name;
+            Children = [];
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -37,22 +37,21 @@ else
             var res = await Client.CategoryTrees.ExecuteAsync();
             res.AssertNoErrors();
 
-            _treeItems = new HashSet<CategoryItem>();
             foreach (var cat1 in res.Data.SupCategories)
             {
                 if (cat1.ParentId != "4161")
                     continue;
 
-                var item1 = new CategoryItem(cat1);
+                var item1 = new MyTreeItemData(cat1);
                 _treeItems.Add(item1);
                 foreach (var cat2 in cat1.Children)
                 {
-                    var item2 = new CategoryItem(cat2);
-                    item1.Items.Add(item2);
+                    var item2 = new MyTreeItemData(cat2);
+                    item1.Children.Add(item2);
                     foreach (var cat3 in cat2.Children)
                     {
-                        var item3 = new CategoryItem(cat3);
-                        item2.Items.Add(item3);
+                        var item3 = new MyTreeItemData(cat3);
+                        item2.Children.Add(item3);
                     }
                 }
             }

@@ -1,4 +1,5 @@
 ﻿@page "/search"
+@using System.Threading
 @inherits AbstractPage
 @inject NexarClient Client
 
@@ -7,8 +8,8 @@
 <MudCard>
     <MudCardContent>
         <MudAutocomplete T="string" Label="Query"
-                         TextChanged="QueryChanged" SearchFunc="@AutocompleteAsync"
-                         ResetValueOnEmptyText="true" Dense="true" CoerceText="false" />
+                         @bind-Value="@_query" SearchFunc="@AutocompleteAsync"
+                         ResetValueOnEmptyText="true" Dense="true" CoerceText="false" CoerceValue="true" />
     </MudCardContent>
     <MudCardActions>
         <MudButton Color="Color.Primary" OnClick="@SearchAsync">Search</MudButton>
@@ -71,23 +72,19 @@
     record PartInfo(string Id, string Mpn, string Manufacturer);
     IReadOnlyList<PartInfo> _parts;
 
-    void QueryChanged(string value)
-    {
-        _query = value;
-    }
-
-    async Task<IEnumerable<string>> AutocompleteAsync(string value)
+    async Task<IEnumerable<string>> AutocompleteAsync(string value, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(value))
-            return null;
+            return [];
 
-        var res = await Client.Suggest.ExecuteAsync(value);
+        var res = await Client.Suggest.ExecuteAsync(value, cancellationToken);
         if (res.Errors.Count > 0)
         {
-            return null;
+            return [];
         }
         else
         {
+            //! values must be unique
             return res.Data.SupSuggest.Select(x => x.Text).ToHashSet();
         }
     }
