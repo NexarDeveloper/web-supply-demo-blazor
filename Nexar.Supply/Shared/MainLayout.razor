@@ -15,9 +15,15 @@
             <MudLink Href=@AppData.ApiEndpoint Color=Color.Inherit Target="_blank">@AppData.ApiEndpoint</MudLink>
         </MudHidden>
         <MudSpacer />
-        <MudIconButton Icon=@Icons.Material.Filled.Search Color=Color.Inherit title="Octopart search page" Href="https://octopart.com/api/v4/values" Target="_blank" />
-        <MudIconButton Icon=@Icons.Material.Filled.Home Color=Color.Inherit title="Nexar home page" Href=@AppData.NexarDotCom Target="_blank" />
-        <MudIconButton Icon=@Icons.Custom.Brands.GitHub Color=Color.Inherit title="Source code" Href="https://github.com/NexarDeveloper/web-supply-demo-blazor" Target="_blank" />
+        <MudTooltip Text="Octopart search page">
+            <MudIconButton Icon=@Icons.Material.Filled.Search Color=Color.Inherit Href="https://octopart.com/api/v4/values" Target="_blank" />
+        </MudTooltip>
+        <MudTooltip Text="Nexar home page">
+            <MudIconButton Icon=@Icons.Material.Filled.Home Color=Color.Inherit Href=@AppData.NexarDotCom Target="_blank" />
+        </MudTooltip>
+        <MudTooltip Text="Source code">
+            <MudIconButton Icon=@Icons.Custom.Brands.GitHub Color=Color.Inherit Href="https://github.com/NexarDeveloper/web-supply-demo-blazor" Target="_blank" />
+        </MudTooltip>
     </MudAppBar>
     <MudDrawer @bind-Open=@_drawerOpen Elevation=1>
         <MudDrawerHeader>
