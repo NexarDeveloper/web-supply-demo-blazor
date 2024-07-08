@@ -7,7 +7,7 @@
 
 @if (_manufacturers is null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressLinear Indeterminate=true />
 }
 else
 {
@@ -34,16 +34,16 @@ else
 
 @code {
     string _filterString = string.Empty;
-    IReadOnlyList<Element> _manufacturers;
+    IReadOnlyList<Element>? _manufacturers;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             var res = await Client.Manufacturers.ExecuteAsync();
-            res.AssertNoErrors();
+            var data = res.AssertNoErrors();
 
-            _manufacturers = res.Data.SupManufacturers;
+            _manufacturers = data.SupManufacturers;
         }
         catch (Exception ex)
         {
@@ -56,6 +56,6 @@ else
         return
             string.IsNullOrWhiteSpace(_filterString) ||
             element.Name.Contains(_filterString, StringComparison.OrdinalIgnoreCase) ||
-            element.HomepageUrl.Contains(_filterString, StringComparison.OrdinalIgnoreCase);
+            (element.HomepageUrl is { } x ? x.Contains(_filterString, StringComparison.OrdinalIgnoreCase) : false);
     }
 }

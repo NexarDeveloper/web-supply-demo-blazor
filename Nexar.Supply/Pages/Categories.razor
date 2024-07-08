@@ -6,11 +6,11 @@
 
 @if (_treeItems is null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressLinear Indeterminate=true />
 }
 else
 {
-    <MudTreeView Items="_treeItems">
+    <MudTreeView T=ICategoryInfo Items="_treeItems">
         <ItemTemplate>
             <MudTreeViewItem Items="@context.Children" Value="@context.Value" Text="@context.Text" />
         </ItemTemplate>
@@ -35,9 +35,9 @@ else
         try
         {
             var res = await Client.CategoryTrees.ExecuteAsync();
-            res.AssertNoErrors();
+            var data = res.AssertNoErrors();
 
-            foreach (var cat1 in res.Data.SupCategories)
+            foreach (var cat1 in data.SupCategories)
             {
                 if (cat1.ParentId != "4161")
                     continue;
@@ -47,11 +47,11 @@ else
                 foreach (var cat2 in cat1.Children)
                 {
                     var item2 = new MyTreeItemData(cat2);
-                    item1.Children.Add(item2);
+                    item1.Children!.Add(item2);
                     foreach (var cat3 in cat2.Children)
                     {
                         var item3 = new MyTreeItemData(cat3);
-                        item2.Children.Add(item3);
+                        item2.Children!.Add(item3);
                     }
                 }
             }

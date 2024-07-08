@@ -13,13 +13,13 @@ public class AbstractPage : ComponentBase
     /// Modal message boxes.
     /// </summary>
     [Inject]
-    private IDialogService DialogService { get; init; }
+    private IDialogService DialogService { get; init; } = null!;
 
     /// <summary>
     /// Common navigation manager.
     /// </summary>
     [Inject]
-    public NavigationManager NavManager { get; init; }
+    public NavigationManager NavManager { get; init; } = null!;
 
     /// <summary>
     /// Show the message, logout, navigate to login page.
@@ -29,6 +29,6 @@ public class AbstractPage : ComponentBase
         await DialogService.ShowMessageBox("Error", message);
 
         AppData.Token = null;
-        NavManager.NavigateTo("");
+        NavManager.NavigateTo(string.Empty);
     }
 }

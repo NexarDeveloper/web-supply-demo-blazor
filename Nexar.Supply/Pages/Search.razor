@@ -13,12 +13,13 @@
     </MudCardContent>
     <MudCardActions>
         <MudButton Color="Color.Primary" OnClick="@SearchAsync">Search</MudButton>
-        @if (_loading)
-        {
-            <MudProgressCircular Indeterminate="true" />
-        }
     </MudCardActions>
 </MudCard>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate=true />
+}
 
 @if (_manufacturers?.Count > 0)
 {
@@ -63,14 +64,14 @@
 }
 
 @code {
-    string _query;
+    string? _query;
     bool _loading;
 
     record CompanyInfo(string Id, string Name, int? Count);
-    IReadOnlyList<CompanyInfo> _manufacturers;
+    IReadOnlyList<CompanyInfo>? _manufacturers;
 
     record PartInfo(string Id, string Mpn, string Manufacturer);
-    IReadOnlyList<PartInfo> _parts;
+    IReadOnlyList<PartInfo>? _parts;
 
     async Task<IEnumerable<string>> AutocompleteAsync(string value, CancellationToken cancellationToken)
     {
@@ -85,7 +86,7 @@
         else
         {
             //! values must be unique
-            return res.Data.SupSuggest.Select(x => x.Text).ToHashSet();
+            return res.Data!.SupSuggest.Select(x => x.Text).ToHashSet();
         }
     }
 
@@ -98,13 +99,13 @@
         try
         {
             var res = await Client.Search.ExecuteAsync(_query);
-            res.AssertNoErrors();
+            var data = res.AssertNoErrors();
 
-            _manufacturers = res.Data.SupSearch.ManufacturerAgg
+            _manufacturers = data.SupSearch.ManufacturerAgg
                 .Select(x => new CompanyInfo(x.Company.Id, x.Company.Name, x.Count))
                 .ToArray();
 
-            _parts = res.Data.SupSearch.Results
+            _parts = data.SupSearch.Results?
                 .Select(x => new PartInfo(x.Part.Id, x.Part.Mpn, x.Part.Manufacturer.Name))
                 .ToArray();
         }

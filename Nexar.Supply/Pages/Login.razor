@@ -17,21 +17,22 @@
         </MudCardContent>
         <MudCardActions>
             <MudButton Color=Color.Primary OnClick=@LoginAsync>Sign In</MudButton>
-            @if (_loading)
-            {
-                <MudProgressCircular Indeterminate=true />
-            }
         </MudCardActions>
     </MudCard>
 </MudForm>
 
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate=true />
+}
+
 @code {
     [Parameter]
     [SupplyParameterFromQuery(Name = "token")]
-    public string TokenParameter { get; init; }
+    public string? TokenParameter { get; init; }
 
-    string _clientId;
-    string _clientSecret;
+    string? _clientId;
+    string? _clientSecret;
     bool _loading;
 
     /// <summary>

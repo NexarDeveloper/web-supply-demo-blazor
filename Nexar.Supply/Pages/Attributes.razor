@@ -7,7 +7,7 @@
 
 @if (_attributes is null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressLinear Indeterminate=true />
 }
 else
 {
@@ -36,16 +36,16 @@ else
 
 @code {
     string _filterString = string.Empty;
-    IReadOnlyList<Element> _attributes;
+    IReadOnlyList<Element>? _attributes;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             var res = await Client.Attributes.ExecuteAsync();
-            res.AssertNoErrors();
+            var data = res.AssertNoErrors();
 
-            _attributes = res.Data.SupAttributes;
+            _attributes = data.SupAttributes;
         }
         catch (Exception ex)
         {

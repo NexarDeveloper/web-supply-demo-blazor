@@ -25,7 +25,7 @@ public static class AppData
     /// <summary>
     /// The current session token.
     /// </summary>
-    public static string Token
+    public static string? Token
     {
         get => _token;
         set
@@ -34,10 +34,10 @@ public static class AppData
             OnChange?.Invoke();
         }
     }
-    private static string _token;
+    private static string? _token;
 
     /// <summary>
     /// This event is triggered on changes.
     /// </summary>
-    public static event Action OnChange;
+    public static event Action? OnChange;
 }
